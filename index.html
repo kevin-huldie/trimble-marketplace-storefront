@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="SketchUp Extension Warehouse account switcher and checkout flow prototype."
+    />
+    <title>DBS - Round edges corners 2 — Extension Warehouse</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Persona & scenario simulation bar -->
+    <header
+      class="sim-bar prototype-control-header"
+      id="prototype-control-header"
+      role="banner"
+      aria-label="Prototype scenario controls"
+    >
+      <div class="sim-bar__inner prototype-control-header__inner">
+        <div class="sim-bar__row sim-bar__row--scenarios prototype-control-header__scenarios">
+          <span class="sim-bar__label">Test scenario:</span>
+          <div
+            class="prototype-radio-group"
+            role="group"
+            aria-label="Select persona scenario"
+          >
+            <label class="prototype-radio-option">
+              <input type="radio" name="scenario" value="A" checked />
+              <span>A: AO/SAO - Single Account</span>
+            </label>
+            <label
+              class="prototype-radio-option"
+              title="Scenario B: Multiple Accounts (Routes to Account Selection)"
+            >
+              <input
+                type="radio"
+                name="scenario"
+                value="B"
+                aria-label="Scenario B: Multiple Accounts (Routes to Account Selection Page)"
+              />
+              <span>B: Multiple Accounts</span>
+            </label>
+            <label class="prototype-radio-option">
+              <input type="radio" name="scenario" value="C" />
+              <span>C: License Admin</span>
+            </label>
+            <label class="prototype-radio-option">
+              <input type="radio" name="scenario" value="D" />
+              <span>D: Product User</span>
+            </label>
+            <label class="prototype-radio-option">
+              <input type="radio" name="scenario" value="E" />
+              <span>E: Security Modal Errors</span>
+            </label>
+            <label class="prototype-radio-option">
+              <input type="radio" name="scenario" value="F" />
+              <span>F: Account Selector Errors</span>
+            </label>
+          </div>
+        </div>
+
+        <div
+          class="sim-bar__row sim-bar__row--dvw"
+          id="scenario-substate-panel"
+          aria-live="polite"
+        >
+          <div id="scenario-substate-a" class="scenario-substate sim-bar__row-block">
+            <span class="sim-bar__label sim-bar__label--section">DVW ECOMMERCE ACCOUNT STATE:</span>
+            <fieldset
+              class="sim-bar__dvw"
+              id="dvw-state-wrap"
+              role="radiogroup"
+              aria-label="Direct-via-Web eCommerce account state for Scenario A"
+            >
+              <div class="sim-bar__dvw-options prototype-radio-group prototype-radio-group--stack">
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state" value="exists" checked />
+                  <span>DvW eCommerce account exists (routes to checkout)</span>
+                </label>
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state" value="not-created" />
+                  <span>DvW eCommerce account not created (routes to account setup)</span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div id="scenario-substate-b" class="scenario-substate sim-bar__row-block" hidden>
+            <span class="sim-bar__label sim-bar__label--section">DVW ECOMMERCE ACCOUNT STATE:</span>
+            <fieldset
+              class="sim-bar__dvw"
+              id="dvw-state-b-wrap"
+              role="radiogroup"
+              aria-label="DvW eCommerce account state for Scenario B"
+            >
+              <div class="sim-bar__dvw-options prototype-radio-group prototype-radio-group--stack">
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state-b" value="ao-sao-only" />
+                  <span>AO/SAO Only</span>
+                </label>
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state-b" value="full-matrix" checked />
+                  <span>AO/SAO, License Admin, and Product User</span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div id="scenario-substate-c" class="scenario-substate sim-bar__row-block" hidden>
+            <span class="sim-bar__label sim-bar__label--section">DVW ECOMMERCE ACCOUNT STATE:</span>
+            <fieldset
+              class="sim-bar__dvw"
+              role="radiogroup"
+              aria-label="DvW eCommerce account state for Scenario C"
+            >
+              <div class="prototype-radio-group prototype-radio-group--stack">
+                <label class="prototype-radio-option prototype-radio-option--static">
+                  <input
+                    type="radio"
+                    name="dvw-state-c"
+                    value="request-account-action"
+                    checked
+                    disabled
+                  />
+                  <span>Request Account Action</span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div id="scenario-substate-d" class="scenario-substate sim-bar__row-block" hidden>
+            <span class="sim-bar__label sim-bar__label--section">DVW ECOMMERCE ACCOUNT STATE:</span>
+            <fieldset
+              class="sim-bar__dvw"
+              role="radiogroup"
+              aria-label="DvW eCommerce account state for Scenario D"
+            >
+              <div class="prototype-radio-group prototype-radio-group--stack">
+                <label class="prototype-radio-option prototype-radio-option--static">
+                  <input
+                    type="radio"
+                    name="dvw-state-d"
+                    value="request-account-action"
+                    checked
+                    disabled
+                  />
+                  <span>Request Account Action</span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div id="scenario-substate-e" class="scenario-substate sim-bar__row-block" hidden>
+            <span class="sim-bar__label sim-bar__label--section"
+              >DVW ECOMMERCE ACCOUNT STATE / EDGE CASES &amp; ERROR STATES:</span
+            >
+            <fieldset
+              class="sim-bar__dvw"
+              id="dvw-state-e-wrap"
+              role="radiogroup"
+              aria-label="Security modal error state for Scenario E"
+            >
+              <div class="sim-bar__dvw-options prototype-radio-group prototype-radio-group--stack">
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state-e" value="session-timeout" checked />
+                  <span>Session Timeout / Expired Token</span>
+                </label>
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state-e" value="sso-failure" />
+                  <span>Enterprise Federated SSO Redirect Failure</span>
+                </label>
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state-e" value="currency-region" />
+                  <span>Mismatched Currency / Region Entitlement</span>
+                </label>
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state-e" value="auth-block" />
+                  <span>Critical Transactional / Auth Block</span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div id="scenario-substate-f" class="scenario-substate sim-bar__row-block" hidden>
+            <span class="sim-bar__label sim-bar__label--section"
+              >DVW ECOMMERCE ACCOUNT STATE / EDGE CASES &amp; ERROR STATES:</span
+            >
+            <fieldset
+              class="sim-bar__dvw"
+              id="dvw-state-f-wrap"
+              role="radiogroup"
+              aria-label="Account selector error state for Scenario F"
+            >
+              <div class="sim-bar__dvw-options prototype-radio-group prototype-radio-group--stack">
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state-f" value="entitlement-timeout" checked />
+                  <span>Entitlement Service Timeout / Account Retrieval Failure</span>
+                </label>
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state-f" value="zero-accounts" />
+                  <span>Zero Authorized Accounts</span>
+                </label>
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state-f" value="setup-incomplete" />
+                  <span>Account Setup Incomplete</span>
+                </label>
+                <label class="prototype-radio-option">
+                  <input type="radio" name="dvw-state-f" value="permission-downgrade" />
+                  <span>Concurrent Account Permission Downgrade</span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+
+        <div class="sim-bar__row sim-bar__row--tid">
+          <p class="sim-bar__tid" aria-live="polite">
+            Trimble ID: <span id="sim-tid">alex.morgan@acmearch.com</span>
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <div id="app-root">
+      <!-- Screen 1: SUEW PDP -->
+      <main id="view-pdp" class="view view--active suew-page" data-route="/">
+        <header class="suew-header">
+          <div class="suew-header__inner">
+            <a class="suew-header__brand" href="#" aria-label="SketchUp Extension Warehouse home">
+              <span class="suew-logo" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 32 32" focusable="false">
+                  <rect width="32" height="32" rx="4" fill="#FFC107" />
+                  <path
+                    fill="#252A2E"
+                    d="M8 22V10h4.2l3.1 7.2L18.4 10H22v12h-3.4v-7.1l-3.2 7.1h-2.2l-3.2-7.1V22H8z"
+                  />
+                </svg>
+              </span>
+              <span class="suew-header__logotype">
+                <span class="suew-header__logotype-main">Extension Warehouse</span>
+              </span>
+            </a>
+            <div class="suew-header__actions">
+              <button
+                type="button"
+                class="suew-icon-btn"
+                id="btn-suew-search"
+                aria-label="Search extensions"
+              >
+                <svg class="suew-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="suew-avatar-btn"
+                id="btn-suew-user"
+                aria-label="Signed in as alex.morgan@acmearch.com"
+                aria-describedby="suew-header-tid"
+              >
+                <span class="suew-avatar" aria-hidden="true">AM</span>
+              </button>
+              <span id="suew-header-tid" class="visually-hidden"
+                >Trimble ID: alex.morgan@acmearch.com</span
+              >
+            </div>
+          </div>
+        </header>
+
+        <div class="suew-pdp-wrap prototype-page-content">
+          <div class="pdp-layout">
+          <article class="pdp pdp-hero">
+            <div class="pdp__media">
+              <div class="pdp__media-frame">
+                <div class="pdp__media-play" aria-hidden="true">
+                  <span class="pdp__play-icon"></span>
+                </div>
+                <p class="pdp__media-caption">
+                  SketchUp Extension: Round edges corners 2
+                </p>
+              </div>
+            </div>
+            <div class="pdp__content">
+              <p class="pdp__developer">
+                <a href="#" class="pdp__developer-link">DBS</a>
+              </p>
+              <h1 class="pdp__title">DBS - Round edges corners 2</h1>
+              <ul class="pdp__tags" aria-label="Categories">
+                <li><span class="pdp__tag">Drawing Tools</span></li>
+                <li><span class="pdp__tag">Productivity</span></li>
+                <li><span class="pdp__tag">Woodworking</span></li>
+              </ul>
+              <div class="pdp__compat">
+                <h2 class="pdp__compat-label">Compatibility</h2>
+                <p class="pdp__compat-list">
+                  SketchUp 2026, 2025, 2024, 2023, 2022, 2021, 2020
+                </p>
+              </div>
+              <p class="pdp__price-block">
+                <span
+                  class="pdp__price-main"
+                  id="pdp-price-display"
+                  aria-label="Purchase price: $12.00 per year"
+                  >$12.00 / yr</span
+                >
+              </p>
+              <div class="pdp__actions">
+                <button type="button" class="btn btn--pdp-outline btn--pdp">
+                  Contact Developer
+                </button>
+                <div class="split-dropdown" id="try-purchase-dropdown">
+                  <button
+                    type="button"
+                    class="split-dropdown__trigger btn btn--primary btn--pdp"
+                    id="btn-try-purchase"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                    aria-controls="try-purchase-menu"
+                  >
+                    <span>Try or Purchase</span>
+                    <span class="split-dropdown__chevron" aria-hidden="true">∨</span>
+                  </button>
+                  <div
+                    id="try-purchase-menu"
+                    class="split-dropdown__menu"
+                    role="menu"
+                    hidden
+                  >
+                    <button type="button" class="split-dropdown__item" role="menuitem" id="menu-start-trial">
+                      Start Free Trial
+                    </button>
+                    <button
+                      type="button"
+                      class="split-dropdown__item split-dropdown__item--primary"
+                      role="menuitem"
+                      id="menu-purchase"
+                    >
+                      Purchase
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <section class="pdp-details" aria-label="Extension details">
+            <div
+              class="pdp-tabs"
+              role="tablist"
+              aria-label="Extension information"
+            >
+              <button
+                type="button"
+                class="pdp-tabs__tab pdp-tabs__tab--active"
+                role="tab"
+                id="tab-description"
+                aria-selected="true"
+                aria-controls="panel-description"
+                tabindex="0"
+              >
+                Description
+              </button>
+              <button
+                type="button"
+                class="pdp-tabs__tab"
+                role="tab"
+                id="tab-overview"
+                aria-selected="false"
+                aria-controls="panel-overview"
+                tabindex="-1"
+              >
+                Extension Overview
+              </button>
+              <button
+                type="button"
+                class="pdp-tabs__tab"
+                role="tab"
+                id="tab-release-notes"
+                aria-selected="false"
+                aria-controls="panel-release-notes"
+                tabindex="-1"
+              >
+                Release Notes
+              </button>
+            </div>
+
+            <div class="pdp-tabpanels">
+              <div
+                id="panel-description"
+                class="pdp-tabpanel pdp-tabpanel--active"
+                role="tabpanel"
+                aria-labelledby="tab-description"
+                tabindex="0"
+              >
+                <p class="pdp-tabpanel__lead">
+                  Round edges corners 2 helps you soften hard edges on cabinetry, furniture, and
+                  architectural details directly inside SketchUp. Select edges or faces, set a
+                  radius, and apply consistent fillets without leaving the modeling environment.
+                </p>
+                <h2 class="pdp-tabpanel__heading">Key features</h2>
+                <ul class="pdp-feature-list">
+                  <li>Rounds corners of all selected edges</li>
+                  <li>Live preview while setting radius</li>
+                  <li>Uniform or variable radius per edge selection</li>
+                  <li>Works on both open and closed edge loops</li>
+                  <li>Preserves original geometry for easy undo and iteration</li>
+                </ul>
+                <h2 class="pdp-tabpanel__heading">Support</h2>
+                <ul class="pdp-support-links">
+                  <li>
+                    <a href="#">Developer website</a>
+                  </li>
+                  <li>
+                    <a href="#">Documentation and tutorials</a>
+                  </li>
+                  <li>
+                    <a href="mailto:support@dbs-extensions.example">Contact DBS support</a>
+                  </li>
+                </ul>
+              </div>
+
+              <div
+                id="panel-overview"
+                class="pdp-tabpanel"
+                role="tabpanel"
+                aria-labelledby="tab-overview"
+                hidden
+                tabindex="0"
+              >
+                <p class="pdp-tabpanel__lead">
+                  Extension Overview summarizes licensing, trial terms, and how this tool fits into
+                  your SketchUp workflow.
+                </p>
+                <dl class="pdp-meta-list">
+                  <div class="pdp-meta-list__row">
+                    <dt>Version</dt>
+                    <dd>2.4.1</dd>
+                  </div>
+                  <div class="pdp-meta-list__row">
+                    <dt>License</dt>
+                    <dd>Per-seat subscription with 14-day trial</dd>
+                  </div>
+                  <div class="pdp-meta-list__row">
+                    <dt>Languages</dt>
+                    <dd>English, German, French</dd>
+                  </div>
+                  <div class="pdp-meta-list__row">
+                    <dt>Last updated</dt>
+                    <dd>September 12, 2026</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div
+                id="panel-release-notes"
+                class="pdp-tabpanel"
+                role="tabpanel"
+                aria-labelledby="tab-release-notes"
+                hidden
+                tabindex="0"
+              >
+                <h2 class="pdp-tabpanel__heading">Version 2.4.1</h2>
+                <ul class="pdp-feature-list">
+                  <li>Improved performance on large selections in SketchUp 2026</li>
+                  <li>Fixed radius preview on curved face boundaries</li>
+                  <li>Updated toolbar icons for high-DPI displays</li>
+                </ul>
+                <h2 class="pdp-tabpanel__heading">Version 2.4.0</h2>
+                <ul class="pdp-feature-list">
+                  <li>Added variable radius mode for woodworking joints</li>
+                  <li>Compatibility updates for SketchUp 2025 and 2026</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+          </div>
+        </div>
+
+        <footer class="suew-footer">
+          <div class="suew-footer__inner">
+            <div class="suew-footer__brand">
+              <span class="suew-footer__trimble-logo" aria-hidden="true">
+                <svg width="120" height="28" viewBox="0 0 120 28" focusable="false">
+                  <text
+                    x="0"
+                    y="22"
+                    fill="#FFFFFF"
+                    font-family="Open Sans, sans-serif"
+                    font-size="22"
+                    font-weight="700"
+                  >
+                    trimble
+                  </text>
+                </svg>
+              </span>
+            </div>
+            <div class="suew-footer__columns">
+              <div class="suew-footer__col">
+                <h2 class="suew-footer__heading">About Us</h2>
+                <ul class="suew-footer__links">
+                  <li><a href="#">Trimble</a></li>
+                  <li><a href="#">SketchUp</a></li>
+                  <li><a href="#">Careers</a></li>
+                </ul>
+              </div>
+              <div class="suew-footer__col">
+                <h2 class="suew-footer__heading">Developers</h2>
+                <ul class="suew-footer__links">
+                  <li><a href="#">Developer Center</a></li>
+                  <li><a href="#">Submit an Extension</a></li>
+                  <li><a href="#">Developer Forum</a></li>
+                </ul>
+              </div>
+              <div class="suew-footer__col">
+                <h2 class="suew-footer__heading">Programs</h2>
+                <ul class="suew-footer__links">
+                  <li><a href="#">Certified Trainers</a></li>
+                  <li><a href="#">Authorized Resellers</a></li>
+                </ul>
+              </div>
+              <div class="suew-footer__col">
+                <h2 class="suew-footer__heading">Help</h2>
+                <ul class="suew-footer__links">
+                  <li><a href="#">Help Center</a></li>
+                  <li><a href="#">Contact Support</a></li>
+                  <li><a href="#">Privacy</a></li>
+                </ul>
+              </div>
+            </div>
+            <p class="suew-footer__legal">
+              © 2026 Trimble Inc. All rights reserved. SketchUp and Extension Warehouse are
+              trademarks of Trimble Inc.
+            </p>
+          </div>
+        </footer>
+      </main>
+
+      <!-- Screen 2: Account selection (MXP) -->
+      <main
+        id="view-account-selection"
+        class="view account-selection-page"
+        data-route="/account-selection"
+        hidden
+      >
+        <header class="checkout-site-header checkout-site-header--sticky">
+          <div class="checkout-site-header__inner">
+            <a
+              class="checkout-site-header__logo"
+              href="./"
+              data-nav="/"
+              title="Return to Extension Warehouse PDP (Prototype Only)"
+              aria-label="Return to SketchUp Extension Warehouse product detail page"
+            >
+              <span class="mxp-logo" aria-hidden="true">trimble</span>
+            </a>
+            <div class="checkout-site-header__actions">
+              <button type="button" class="checkout-site-header__locale" aria-label="Language">
+                <span class="checkout-site-header__locale-icon" aria-hidden="true">🌐</span>
+                <span>US | English</span>
+              </button>
+              <button
+                type="button"
+                class="checkout-site-header__avatar"
+                aria-label="User profile, initials JD"
+              >
+                <span aria-hidden="true">JD</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div class="account-selection-page__body prototype-page-content">
+          <div class="mxp-container account-selection-page__container">
+            <header class="account-selection-page-header">
+              <h1 class="account-selection-page-header__title">Account Selection</h1>
+              <p class="account-selection-page-header__subtitle">
+                Please select an account for this purchase.
+              </p>
+            </header>
+
+            <section
+              class="account-selection-panel"
+              aria-labelledby="account-selection-panel-title"
+            >
+              <h2 id="account-selection-panel-title" class="account-selection-panel__title">
+                Your Available Accounts
+              </h2>
+              <hr class="account-selection-panel__divider" />
+              <p class="account-selection-panel__note">
+                Select and confirm your account to continue. If you select a Non-buyer account, you
+                will be guided to send a purchase approval request to your Account Owner.
+              </p>
+
+              <div
+                id="account-selection-error-host"
+                class="proto-error-host"
+                role="alert"
+                aria-live="assertive"
+                hidden
+              ></div>
+              <div
+                id="account-selection-empty-host"
+                class="account-selection-empty"
+                role="region"
+                aria-label="No Available Accounts Warning"
+                hidden
+              ></div>
+              <div
+                id="account-selection-service-error"
+                class="account-selection-service-error"
+                role="status"
+                aria-live="polite"
+                hidden
+              ></div>
+
+              <div
+                class="account-grid account-card-grid"
+                id="account-grid"
+                role="radiogroup"
+                aria-labelledby="account-selection-panel-title"
+                aria-describedby="account-selection-panel-note"
+              >
+                <span id="account-selection-panel-note" class="visually-hidden"
+                  >Select and confirm your account to continue.</span
+                >
+                <!-- Cards injected by JS -->
+              </div>
+
+              <div class="account-dock" id="account-selection-dock">
+                <p class="account-dock__helper">
+                  Need to go back? Use your browser's Back button to return to Extension Warehouse.
+                </p>
+                <button
+                  type="button"
+                  class="btn btn--primary btn--dock-cta"
+                  id="btn-continue-checkout"
+                  disabled
+                >
+                  Select an Account to Continue
+                </button>
+              </div>
+            </section>
+
+            <section class="checkout-trust checkout-trust--account-selection" aria-label="Site security">
+              <div class="checkout-trust__badge" aria-hidden="true">
+                <span class="checkout-trust__digicert-mark">DigiCert</span>
+                <span class="checkout-trust__secured">SECURED</span>
+              </div>
+              <p class="checkout-trust__text">
+                SSL Secure Connection. Validated as a secure site for sending and receiving sensitive
+                data.
+              </p>
+            </section>
+          </div>
+        </div>
+
+        <footer class="trimble-dark-footer trimble-dark-footer--commerce">
+          <div class="trimble-dark-footer__bottom trimble-dark-footer__bottom--checkout">
+            <div class="trimble-dark-footer__brand-block">
+              <span class="trimble-dark-footer__logo" aria-hidden="true">trimble</span>
+              <p class="trimble-dark-footer__copy">© 2024, Trimble Inc.</p>
+            </div>
+            <p class="trimble-dark-footer__disclaimer">
+              Trimble is transforming the way the world works by delivering products and services that
+              connect the physical and digital worlds. Core technologies in positioning, modeling,
+              connectivity and data analytics enable customers to improve productivity, quality, safety
+              and sustainability.
+            </p>
+            <nav class="trimble-dark-footer__legal" aria-label="Legal">
+              <a href="#">Legal Terms and Conditions</a>
+              <a href="#">Website Terms of Use</a>
+              <a href="#">Privacy Center</a>
+              <a href="#">Privacy Notice</a>
+              <a href="#">California Notice at Collection</a>
+              <a href="#" class="trimble-dark-footer__privacy-choices">
+                Your Privacy Choices (US)
+                <span class="privacy-icon" aria-hidden="true"></span>
+              </a>
+            </nav>
+          </div>
+        </footer>
+      </main>
+
+      <!-- Stub 2: Checkout -->
+      <main id="view-checkout" class="view checkout-page" data-route="/checkout" hidden>
+        <header class="checkout-site-header checkout-site-header--sticky">
+          <div class="checkout-site-header__inner">
+            <a
+              class="checkout-site-header__logo"
+              href="./"
+              data-nav="/"
+              title="Return to Extension Warehouse PDP (Prototype Only)"
+              aria-label="Return to SketchUp Extension Warehouse product detail page"
+            >
+              <span class="mxp-logo" aria-hidden="true">trimble</span>
+            </a>
+            <div class="checkout-site-header__actions">
+              <button type="button" class="checkout-site-header__locale" aria-label="Language">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path
+                    fill="currentColor"
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
+                  />
+                </svg>
+                <span>US | English</span>
+              </button>
+              <button
+                type="button"
+                class="checkout-site-header__avatar"
+                aria-label="User profile, initials JD"
+              >
+                <span aria-hidden="true">JD</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div class="checkout-page__body prototype-page-content">
+          <div class="mxp-container mxp-container--checkout">
+            <aside
+              class="dev-tooltip"
+              role="note"
+              aria-labelledby="dev-note-checkout-title"
+              data-dev-tooltip
+            >
+              <div class="dev-annotation-note">
+                <div class="dev-tooltip__head">
+                  <span class="dev-tooltip__title" id="dev-note-checkout-title">Developer Note</span>
+                  <button
+                    type="button"
+                    class="dev-tooltip__dismiss"
+                    aria-label="Dismiss developer note"
+                    data-dismiss-dev-note
+                  >
+                    ×
+                  </button>
+                </div>
+                <p class="dev-tooltip__text">
+                  Developer Note (Checkout Flow): User routes directly here when selecting an account
+                  with an existing Direct-via-Web (DvW) e-commerce record and Authorized Buyer
+                  privileges. Account ID <strong id="checkout-dev-account-id">#894201</strong> and
+                  session cart context are bound to this transaction.
+                </p>
+              </div>
+            </aside>
+            <header class="checkout-header">
+              <h1 class="checkout-header__title">Checkout</h1>
+              <p id="checkout-header-meta" class="checkout-header__meta">1 item | Subtotal $12.00</p>
+            </header>
+
+            <div class="checkout-layout">
+              <div class="checkout-layout__main">
+                <section
+                  class="checkout-card checkout-card--billing"
+                  aria-labelledby="checkout-billing-heading"
+                >
+                  <h2 id="checkout-billing-heading" class="checkout-card__title">Billing Information</h2>
+
+                  <div class="checkout-billing-section" aria-labelledby="checkout-account-address-heading">
+                    <h3 id="checkout-account-address-heading" class="checkout-card__subtitle">
+                      Account Address
+                    </h3>
+                    <p class="checkout-card__helper">
+                      Review your account address for accuracy. Taxes will be calculated automatically
+                      based on the address you enter.
+                    </p>
+                    <div class="checkout-address-box">
+                      <p class="checkout-address-box__text">
+                        First Name, Last Name, 0000 Street Name, Building, Floor, Suite Number, City,
+                        State/Province, 00000-0000, Country/Territory, Email Address, Phone Number
+                      </p>
+                      <button type="button" class="checkout-link">Edit</button>
+                    </div>
+                  </div>
+
+                  <hr class="checkout-billing-divider" />
+
+                  <div class="checkout-billing-section" aria-labelledby="checkout-payment-heading">
+                    <h3 id="checkout-payment-heading" class="checkout-card__subtitle">Payment Method</h3>
+                    <p class="checkout-card__helper checkout-card__helper--tight">
+                      You can only assign one payment method to your account. Select a payment method.
+                    </p>
+                    <div
+                      class="checkout-payment-card checkout-payment-card--selected"
+                      role="group"
+                      aria-label="Selected payment method"
+                    >
+                      <div class="checkout-payment-card__body">
+                        <p class="checkout-payment-card__line">Card ending in: 0000</p>
+                        <p class="checkout-payment-card__line checkout-payment-card__line--muted">
+                          Expires on MM/YY
+                        </p>
+                      </div>
+                      <div class="checkout-payment-card__brand" aria-hidden="true">
+                        <svg class="checkout-visa-logo" width="48" height="16" viewBox="0 0 48 16" focusable="false">
+                          <rect width="48" height="16" rx="2" fill="#1A1F71" />
+                          <text x="24" y="11.5" text-anchor="middle" fill="#F7B600" font-family="Open Sans,sans-serif" font-size="9" font-weight="700" font-style="italic">VISA</text>
+                        </svg>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="checkout-accordion"
+                      aria-expanded="false"
+                      aria-controls="checkout-add-payment-panel"
+                    >
+                      Add a New Payment Option
+                      <span class="checkout-accordion__chev" aria-hidden="true">∨</span>
+                    </button>
+                    <div id="checkout-add-payment-panel" class="checkout-accordion__panel" hidden></div>
+                    <div class="checkout-card__actions">
+                      <button
+                        type="button"
+                        class="btn btn--primary btn--checkout-continue"
+                        id="btn-checkout-order-review"
+                      >
+                        Continue to Order Review
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <aside class="checkout-layout__sidebar" aria-label="Order summary and cart">
+                <section class="checkout-card checkout-card--sidebar" aria-labelledby="checkout-order-summary-heading">
+                  <h2 id="checkout-order-summary-heading" class="checkout-card__title">Order Summary</h2>
+                  <button
+                    type="button"
+                    class="checkout-accordion checkout-accordion--promo"
+                    aria-expanded="false"
+                    aria-controls="checkout-promo-panel"
+                  >
+                    Do you have a promo code?
+                    <span class="checkout-accordion__chev" aria-hidden="true">∨</span>
+                  </button>
+                  <div id="checkout-promo-panel" class="checkout-accordion__panel" hidden></div>
+                  <dl class="checkout-summary-lines">
+                    <div class="checkout-summary-lines__row">
+                      <dt>Subtotal</dt>
+                      <dd id="checkout-subtotal">$12.00</dd>
+                    </div>
+                    <div class="checkout-summary-lines__row">
+                      <dt>Promotions</dt>
+                      <dd>—</dd>
+                    </div>
+                    <div class="checkout-summary-lines__row">
+                      <dt>
+                        Estimated Tax
+                        <button
+                          type="button"
+                          class="checkout-info-btn"
+                          aria-label="Estimated tax information"
+                        >
+                          ⓘ
+                        </button>
+                      </dt>
+                      <dd id="checkout-tax">$0.00</dd>
+                    </div>
+                    <div class="checkout-summary-lines__row checkout-summary-lines__row--total">
+                      <dt>Estimated Total (USD)</dt>
+                      <dd id="checkout-total">$12.00</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section class="checkout-card checkout-card--sidebar" aria-labelledby="checkout-cart-heading">
+                  <div class="checkout-cart-header">
+                    <h2 id="checkout-cart-heading" class="checkout-card__title checkout-card__title--inline">
+                      Cart
+                    </h2>
+                    <button type="button" class="checkout-link checkout-link--compact">
+                      Hide details
+                      <span aria-hidden="true">∧</span>
+                    </button>
+                  </div>
+                  <p class="checkout-cart-count">1 item</p>
+                  <article class="checkout-cart-item">
+                    <div class="checkout-cart-item__thumb" aria-hidden="true"></div>
+                    <div class="checkout-cart-item__details">
+                      <p class="checkout-cart-item__name" id="checkout-cart-product-name">
+                        DBS - Round edges corners 2
+                      </p>
+                      <p class="checkout-cart-item__meta" id="checkout-cart-developer">Developer: DBS</p>
+                      <p class="checkout-cart-item__meta" id="checkout-cart-sku">SKU: SUEW-DBS-REC2</p>
+                      <p class="checkout-cart-item__price" id="checkout-cart-unit-price">$12.00 USD per user</p>
+                      <label class="checkout-qty" for="checkout-qty-input">
+                        <span class="checkout-qty__label">Quantity</span>
+                        <input
+                          id="checkout-qty-input"
+                          class="checkout-qty__input"
+                          type="number"
+                          min="1"
+                          value="1"
+                          inputmode="numeric"
+                        />
+                      </label>
+                      <button type="button" class="checkout-link checkout-link--remove">Remove</button>
+                    </div>
+                  </article>
+                  <a href="#" class="checkout-continue-shopping" data-nav="/">Continue shopping</a>
+                </section>
+              </aside>
+            </div>
+
+            <section class="checkout-trust" aria-label="Site security">
+              <div class="checkout-trust__badge" aria-hidden="true">
+                <span class="checkout-trust__digicert-mark">DigiCert</span>
+                <span class="checkout-trust__secured">SECURED</span>
+              </div>
+              <p class="checkout-trust__text">
+                SSL Secure Connection. Validated as a secure site for sending and receiving sensitive
+                data.
+              </p>
+            </section>
+          </div>
+        </div>
+
+        <footer class="trimble-dark-footer trimble-dark-footer--checkout">
+          <div class="trimble-dark-footer__bottom trimble-dark-footer__bottom--checkout">
+            <div class="trimble-dark-footer__brand-block">
+              <span class="trimble-dark-footer__logo" aria-hidden="true">trimble</span>
+              <p class="trimble-dark-footer__copy">© 2026, Trimble Inc.</p>
+            </div>
+            <p class="trimble-dark-footer__disclaimer">
+              Trimble is transforming the way the world works by delivering products and services that
+              connect the physical and digital worlds. Core technologies in positioning, modeling,
+              connectivity and data analytics enable customers to improve productivity, quality, safety
+              and sustainability.
+            </p>
+            <nav class="trimble-dark-footer__legal" aria-label="Legal">
+              <a href="#">Legal Terms and Conditions</a>
+              <a href="#">Website Terms of Use</a>
+              <a href="#">Privacy Center</a>
+              <a href="#">Privacy Notice</a>
+              <a href="#">California Notice at Collection</a>
+              <a href="#" class="trimble-dark-footer__privacy-choices">
+                Your Privacy Choices (US)
+                <span class="privacy-icon" aria-hidden="true"></span>
+              </a>
+            </nav>
+          </div>
+        </footer>
+      </main>
+
+      <!-- Stub 1: Account setup -->
+      <main id="view-account-setup" class="view account-setup-page" data-route="/account-setup" hidden>
+        <header class="checkout-site-header checkout-site-header--sticky">
+          <div class="checkout-site-header__inner">
+            <a
+              class="checkout-site-header__logo"
+              href="./"
+              data-nav="/"
+              title="Return to Extension Warehouse PDP (Prototype Only)"
+              aria-label="Return to SketchUp Extension Warehouse product detail page"
+            >
+              <span class="mxp-logo" aria-hidden="true">trimble</span>
+            </a>
+            <div class="checkout-site-header__actions">
+              <button type="button" class="checkout-site-header__locale" aria-label="Language">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path
+                    fill="currentColor"
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
+                  />
+                </svg>
+                <span>US | English</span>
+              </button>
+              <button
+                type="button"
+                class="checkout-site-header__avatar"
+                aria-label="User profile, initials JD"
+              >
+                <span aria-hidden="true">JD</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div class="account-setup-page__body prototype-page-content">
+          <div class="mxp-container mxp-container--setup">
+            <aside
+              class="dev-tooltip"
+              role="note"
+              aria-labelledby="dev-note-setup-title"
+              data-dev-tooltip
+            >
+              <div class="dev-annotation-note">
+                <div class="dev-tooltip__head">
+                  <span class="dev-tooltip__title" id="dev-note-setup-title">Developer Note</span>
+                  <button
+                    type="button"
+                    class="dev-tooltip__dismiss"
+                    aria-label="Dismiss developer note"
+                    data-dismiss-dev-note
+                  >
+                    ×
+                  </button>
+                </div>
+                <p class="dev-tooltip__text">
+                  Developer Note (Account Setup Flow): User routes here if their selected CDH account
+                  lacks an existing Direct-via-Web (DvW) e-commerce profile. Submitting Step 1
+                  advances to Step 2 (Address Doctor Verification API) and Step 3 (Currency) before
+                  transferring cart context into Checkout.
+                </p>
+              </div>
+            </aside>
+            <header class="account-setup-header">
+              <h1 class="account-setup-header__title">Account Setup</h1>
+              <p class="account-setup-header__subtitle">
+                Welcome to Trimble! Please complete these steps.
+              </p>
+            </header>
+
+            <div class="setup-accordion" aria-label="Account setup steps">
+              <section
+                class="setup-step setup-step--expanded"
+                aria-labelledby="setup-step-1-title"
+                aria-current="step"
+              >
+                <p class="setup-step__label">Step 1</p>
+                <h2 id="setup-step-1-title" class="setup-step__title">Profile Details</h2>
+                <div class="setup-step__panel">
+                  <h3 class="setup-step__section-title">Contact Information</h3>
+                  <p class="setup-step__required-note">
+                    * All fields are required unless specified optional
+                  </p>
+                  <form class="setup-form" id="setup-profile-form" onsubmit="return false;">
+                    <div class="setup-form-row setup-form-row--2">
+                      <div class="field">
+                        <label for="setup-first-name">First Name</label>
+                        <input
+                          id="setup-first-name"
+                          class="field__input"
+                          type="text"
+                          name="firstName"
+                          autocomplete="given-name"
+                          placeholder="Auto-populate"
+                          required
+                        />
+                      </div>
+                      <div class="field">
+                        <label for="setup-last-name">Last Name</label>
+                        <input
+                          id="setup-last-name"
+                          class="field__input"
+                          type="text"
+                          name="lastName"
+                          autocomplete="family-name"
+                          placeholder="Auto-populate"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div class="setup-form-row setup-form-row--contact">
+                      <div class="field field--email">
+                        <label for="setup-email">Work Email</label>
+                        <input
+                          id="setup-email"
+                          class="field__input"
+                          type="email"
+                          name="workEmail"
+                          autocomplete="email"
+                          placeholder="Auto-populate"
+                          required
+                        />
+                      </div>
+                      <div class="field field--phone-code">
+                        <label for="setup-phone-code">Phone Country Code</label>
+                        <div class="field__select-wrap">
+                          <select id="setup-phone-code" class="field__select" aria-label="Phone country code">
+                            <option value="" selected>Select Phone</option>
+                          </select>
+                          <span class="field__select-chev" aria-hidden="true">∨</span>
+                        </div>
+                      </div>
+                      <div class="field field--phone">
+                        <label for="setup-phone">
+                          Phone Number
+                          <span class="field__required" aria-hidden="true">*</span>
+                          <button
+                            type="button"
+                            class="setup-info-btn"
+                            aria-label="Phone number information"
+                          >
+                            ⓘ
+                          </button>
+                        </label>
+                        <div class="field__input-with-count">
+                          <input
+                            id="setup-phone"
+                            class="field__input"
+                            type="tel"
+                            inputmode="tel"
+                            maxlength="15"
+                            autocomplete="tel"
+                          />
+                          <span class="field__char-count" id="setup-phone-count" aria-live="polite"
+                            >0 / 15</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                    <fieldset class="setup-radio-group">
+                      <legend class="setup-radio-group__legend">
+                        Are you making this purchase for your business or organization?
+                        <span class="field__required" aria-hidden="true">*</span>
+                      </legend>
+                      <div class="setup-radio-group__options">
+                        <label class="setup-radio-option">
+                          <input type="radio" name="setup-business-purchase" value="no" checked />
+                          <span>No</span>
+                        </label>
+                        <label class="setup-radio-option">
+                          <input type="radio" name="setup-business-purchase" value="yes" />
+                          <span>Yes</span>
+                        </label>
+                      </div>
+                    </fieldset>
+                    <div class="setup-step1-actions">
+                      <button
+                        type="button"
+                        class="btn btn--primary btn--setup-continue"
+                        id="btn-setup-continue"
+                        disabled
+                      >
+                        Continue to Account Address
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </section>
+
+              <section class="setup-step setup-step--collapsed" aria-labelledby="setup-step-2-title">
+                <p class="setup-step__label">Step 2</p>
+                <h2 id="setup-step-2-title" class="setup-step__title setup-step__title--muted">
+                  Account Address
+                </h2>
+              </section>
+
+              <section class="setup-step setup-step--collapsed" aria-labelledby="setup-step-3-title">
+                <p class="setup-step__label">Step 3</p>
+                <h2 id="setup-step-3-title" class="setup-step__title setup-step__title--muted">
+                  Currency Settings
+                </h2>
+              </section>
+            </div>
+
+            <section class="checkout-trust" aria-label="Site security">
+              <div class="checkout-trust__badge" aria-hidden="true">
+                <span class="checkout-trust__digicert-mark">DigiCert</span>
+                <span class="checkout-trust__secured">SECURED</span>
+              </div>
+              <p class="checkout-trust__text">
+                SSL Secure Connection. Validated as a secure site for sending and receiving sensitive
+                data.
+              </p>
+            </section>
+          </div>
+        </div>
+
+        <footer class="trimble-dark-footer trimble-dark-footer--checkout">
+          <div class="trimble-dark-footer__bottom trimble-dark-footer__bottom--checkout">
+            <div class="trimble-dark-footer__brand-block">
+              <span class="trimble-dark-footer__logo" aria-hidden="true">trimble</span>
+              <p class="trimble-dark-footer__copy">© 2024, Trimble Inc.</p>
+            </div>
+            <p class="trimble-dark-footer__disclaimer">
+              Trimble is transforming the way the world works by delivering products and services that
+              connect the physical and digital worlds. Core technologies in positioning, modeling,
+              connectivity and data analytics enable customers to improve productivity, quality, safety
+              and sustainability.
+            </p>
+            <nav class="trimble-dark-footer__legal" aria-label="Legal">
+              <a href="#">Legal Terms and Conditions</a>
+              <a href="#">Website Terms of Use</a>
+              <a href="#">Privacy Center</a>
+              <a href="#">Privacy Notice</a>
+              <a href="#">California Notice at Collection</a>
+              <a href="#" class="trimble-dark-footer__privacy-choices">
+                Your Privacy Choices (US)
+                <span class="privacy-icon" aria-hidden="true"></span>
+              </a>
+            </nav>
+          </div>
+        </footer>
+      </main>
+
+      <!-- Scenario C / Non-Buyer: Request account action or access -->
+      <main id="view-request-purchase" class="view request-access-page" data-route="/request-purchase" hidden>
+        <span id="request-context" class="visually-hidden" aria-hidden="true"></span>
+        <span id="request-ao-email" class="visually-hidden" aria-hidden="true"></span>
+        <span id="request-tid" class="visually-hidden" aria-hidden="true"></span>
+
+        <header class="mxp-corp-header">
+          <div class="mxp-corp-header__inner">
+            <a
+              class="mxp-corp-header__logo"
+              href="./"
+              data-nav="/"
+              title="Return to Extension Warehouse PDP (Prototype Only)"
+              aria-label="Return to SketchUp Extension Warehouse product detail page"
+            >
+              <span class="mxp-logo" aria-hidden="true">trimble</span>
+            </a>
+            <nav class="mxp-corp-header__nav" aria-label="Primary">
+              <a href="#">Industries</a>
+              <a href="#">Solutions</a>
+              <a href="#">Products</a>
+              <a href="#">Resources</a>
+              <a href="#">Events</a>
+            </nav>
+            <div class="mxp-corp-header__actions">
+              <button type="button" class="mxp-corp-header__icon-btn" aria-label="Search">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+              </button>
+              <button type="button" class="mxp-corp-header__locale" aria-label="Language and currency">
+                <span>US</span>
+                <span class="mxp-corp-header__locale-sep" aria-hidden="true">|</span>
+                <span>USD</span>
+              </button>
+              <button type="button" class="mxp-corp-header__icon-btn mxp-corp-header__profile" aria-label="User profile">
+                <span class="mxp-corp-header__profile-circle" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="btn btn--gold">Contact sales</button>
+            </div>
+          </div>
+        </header>
+
+        <div class="request-access-main prototype-page-content">
+          <aside
+            class="dev-tooltip"
+            role="note"
+            aria-labelledby="dev-note-request-title"
+            data-dev-tooltip
+          >
+            <div class="dev-annotation-note">
+              <div class="dev-tooltip__head">
+                <span class="dev-tooltip__title" id="dev-note-request-title">Developer Note</span>
+                <button
+                  type="button"
+                  class="dev-tooltip__dismiss"
+                  aria-label="Dismiss developer note"
+                  data-dismiss-dev-note
+                >
+                  ×
+                </button>
+              </div>
+              <p class="dev-tooltip__text" id="request-dev-note-body"></p>
+            </div>
+          </aside>
+          <section class="request-access-hero">
+            <div class="request-access-hero__inner">
+              <h1 class="request-access-hero__title">Request account action or access</h1>
+              <p class="request-access-hero__lead">
+                Your profile is restricted from making billing or licensing changes. Route this
+                request to your administrator, or add an individual account to buy or try products
+                independently.
+              </p>
+
+              <div class="request-action-cards">
+                <article class="request-action-card">
+                  <h2 class="request-action-card__title">Request administrator approval</h2>
+                  <p class="request-action-card__desc">
+                    Send this request to your Account Owner to finalize a purchase, activate an
+                    extension, or start a free trial.
+                  </p>
+                  <button type="button" class="btn btn--gold btn--card-cta" id="btn-send-request">
+                    Send request
+                  </button>
+                </article>
+                <article class="request-action-card">
+                  <h2 class="request-action-card__title">Create a separate individual account</h2>
+                  <p class="request-action-card__desc">
+                    Create a new Buyer account to purchase this independently. You can use the same
+                    email for sign in or create a new Trimble ID to manage your own billing and
+                    payments.
+                  </p>
+                  <button type="button" class="btn btn--gold btn--card-cta" id="btn-create-individual-account">
+                    Create account
+                  </button>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="request-faq" aria-labelledby="request-faq-heading">
+            <div class="request-faq__inner">
+              <h2 id="request-faq-heading" class="request-faq__title">Frequently asked questions</h2>
+              <p class="request-faq__lead">
+                Quick answers about managing your organization access, account switching, and
+                license requests.
+              </p>
+
+              <div class="faq-accordion">
+                <div class="faq-item">
+                  <button type="button" class="faq-item__trigger" aria-expanded="false" aria-controls="faq-panel-1" id="faq-trigger-1">
+                    <span>What is the difference between an approval request and a separate account?</span>
+                    <span class="faq-item__icon" aria-hidden="true">+</span>
+                  </button>
+                  <div id="faq-panel-1" class="faq-item__panel" role="region" aria-labelledby="faq-trigger-1" hidden>
+                    <p>An approval request notifies your Account Owner to purchase or activate on your behalf. A separate account gives you your own Buyer profile and billing.</p>
+                  </div>
+                </div>
+                <div class="faq-item">
+                  <button type="button" class="faq-item__trigger" aria-expanded="false" aria-controls="faq-panel-2" id="faq-trigger-2">
+                    <span>Will I lose access to my current projects if I create a new account?</span>
+                    <span class="faq-item__icon" aria-hidden="true">+</span>
+                  </button>
+                  <div id="faq-panel-2" class="faq-item__panel" role="region" aria-labelledby="faq-trigger-2" hidden>
+                    <p>Your organization account and project access remain unchanged. An individual account is additive for independent purchasing.</p>
+                  </div>
+                </div>
+                <div class="faq-item">
+                  <button type="button" class="faq-item__trigger" aria-expanded="false" aria-controls="faq-panel-3" id="faq-trigger-3">
+                    <span>How will my Account Owner know I sent a request?</span>
+                    <span class="faq-item__icon" aria-hidden="true">+</span>
+                  </button>
+                  <div id="faq-panel-3" class="faq-item__panel" role="region" aria-labelledby="faq-trigger-3" hidden>
+                    <p>Trimble Admin Console sends an asynchronous notification with your Trimble ID and product context.</p>
+                  </div>
+                </div>
+                <div class="faq-item">
+                  <button type="button" class="faq-item__trigger" aria-expanded="false" aria-controls="faq-panel-4" id="faq-trigger-4">
+                    <span>Can I merge my accounts later?</span>
+                    <span class="faq-item__icon" aria-hidden="true">+</span>
+                  </button>
+                  <div id="faq-panel-4" class="faq-item__panel" role="region" aria-labelledby="faq-trigger-4" hidden>
+                    <p>Account consolidation policies vary by organization. Contact your administrator or Trimble support for guidance.</p>
+                  </div>
+                </div>
+                <div class="faq-item">
+                  <button type="button" class="faq-item__trigger" aria-expanded="false" aria-controls="faq-panel-5" id="faq-trigger-5">
+                    <span>Why would I need to sign out to create an individual account?</span>
+                    <span class="faq-item__icon" aria-hidden="true">+</span>
+                  </button>
+                  <div id="faq-panel-5" class="faq-item__panel" role="region" aria-labelledby="faq-trigger-5" hidden>
+                    <p>Trimble ID enrollment may require a clean session so billing and CDH profiles are created under the correct identity.</p>
+                  </div>
+                </div>
+                <div class="faq-item">
+                  <button type="button" class="faq-item__trigger" aria-expanded="false" aria-controls="faq-panel-6" id="faq-trigger-6">
+                    <span>If I create a separate account, will I be able to use licenses from both simultaneously?</span>
+                    <span class="faq-item__icon" aria-hidden="true">+</span>
+                  </button>
+                  <div id="faq-panel-6" class="faq-item__panel" role="region" aria-labelledby="faq-trigger-6" hidden>
+                    <p>Licenses are tied to the account that purchased them. You can switch accounts in Trimble sign-in, but entitlements do not automatically combine.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <footer class="trimble-dark-footer">
+          <div class="trimble-dark-footer__grid">
+            <div class="trimble-dark-footer__col">
+              <h2 class="trimble-dark-footer__heading">Company</h2>
+              <ul>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Careers</a></li>
+                <li><a href="#">Investor Relations</a></li>
+                <li><a href="#">News Releases</a></li>
+                <li><a href="#">Locations</a></li>
+                <li><a href="#">Partners</a></li>
+                <li><a href="#">Contact Us</a></li>
+              </ul>
+            </div>
+            <div class="trimble-dark-footer__col">
+              <h2 class="trimble-dark-footer__heading">Commitment</h2>
+              <ul>
+                <li><a href="#">Sustainability</a></li>
+                <li><a href="#">Trimble Foundation</a></li>
+                <li><a href="#">Trimble Ventures</a></li>
+                <li><a href="#">Compliance</a></li>
+                <li><a href="#">Ethics Concerns</a></li>
+                <li><a href="#">Cybersecurity Concerns</a></li>
+              </ul>
+            </div>
+            <div class="trimble-dark-footer__col">
+              <h2 class="trimble-dark-footer__heading">Products</h2>
+              <ul>
+                <li><a href="#">ProjectSight</a></li>
+                <li><a href="#">Product Name 2</a></li>
+                <li><a href="#">Product Name 3</a></li>
+                <li><a href="#">Product Name 4</a></li>
+                <li><a href="#">Product Name 5</a></li>
+                <li><a href="#">Product Name 6</a></li>
+                <li><a href="#">View All Products ›</a></li>
+              </ul>
+            </div>
+            <div class="trimble-dark-footer__col">
+              <h2 class="trimble-dark-footer__heading">Help</h2>
+              <ul>
+                <li><a href="#">Get Product Support</a></li>
+                <li><a href="#">Find a Dealer</a></li>
+                <li><a href="#">Professional Services</a></li>
+                <li><a href="#">Extended Protection</a></li>
+                <li><a href="#">Developer Resources</a></li>
+              </ul>
+            </div>
+          </div>
+          <div class="trimble-dark-footer__connect">
+            <span class="trimble-dark-footer__connect-label">Connect</span>
+            <div class="trimble-dark-footer__social" aria-label="Social media">
+              <a href="#" aria-label="Facebook"><span aria-hidden="true">f</span></a>
+              <a href="#" aria-label="X"><span aria-hidden="true">X</span></a>
+              <a href="#" aria-label="LinkedIn"><span aria-hidden="true">in</span></a>
+              <a href="#" aria-label="YouTube"><span aria-hidden="true">▶</span></a>
+              <a href="#" aria-label="TikTok"><span aria-hidden="true">♪</span></a>
+              <a href="#" aria-label="Instagram"><span aria-hidden="true">◎</span></a>
+            </div>
+          </div>
+          <div class="trimble-dark-footer__bottom">
+            <div class="trimble-dark-footer__brand-block">
+              <span class="trimble-dark-footer__logo" aria-hidden="true">trimble</span>
+              <p class="trimble-dark-footer__copy">© 2024 Trimble Inc.</p>
+            </div>
+            <p class="trimble-dark-footer__disclaimer">
+              Trimble is transforming the way the world works by delivering products and services
+              that connect the physical and digital worlds. Core technologies in positioning,
+              modeling, connectivity and data analytics enable customers to improve productivity,
+              quality, safety and sustainability.
+            </p>
+            <nav class="trimble-dark-footer__legal" aria-label="Legal">
+              <a href="#">Legal Terms and Conditions</a>
+              <a href="#">Website Terms of Use</a>
+              <a href="#">Privacy Center</a>
+              <a href="#">Privacy Notice</a>
+              <a href="#">California Notice at Collection</a>
+              <a href="#">Your Privacy Choices (US)</a>
+            </nav>
+          </div>
+        </footer>
+      </main>
+    </div>
+
+    <div
+      id="app-toast"
+      class="app-toast"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      hidden
+    >
+      <p class="app-toast__message" id="app-toast-message"></p>
+      <button
+        type="button"
+        class="app-toast__close"
+        id="app-toast-close"
+        aria-label="Dismiss notification"
+      >
+        ×
+      </button>
+    </div>
+
+    <!-- Phase 1: In-context security modal -->
+    <div
+      id="security-modal-backdrop"
+      class="modal-backdrop"
+      hidden
+      aria-hidden="true"
+    ></div>
+    <div
+      id="security-modal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="security-modal-title"
+      aria-describedby="security-modal-body"
+      hidden
+    >
+      <div class="modal__panel">
+        <div class="modal__head">
+          <h2 id="security-modal-title" class="modal__title">
+            Proceeding to Secure Trimble Commerce
+          </h2>
+          <button
+            type="button"
+            class="modal__close"
+            id="btn-modal-close"
+            aria-label="Close dialog and return to Extension Warehouse"
+          >
+            ×
+          </button>
+        </div>
+        <div id="security-modal-body" class="modal__body">
+          <p id="modal-body-lead">
+            You are leaving SketchUp Extension Warehouse to complete your order on Trimble Commerce
+            (<span class="nowrap">shop.trimble.com</span>).
+          </p>
+          <div class="modal__verified-id" role="status" aria-live="polite">
+            <span class="modal__verified-id-label">Verified Trimble ID:</span>
+            <span
+              class="modal__verified-id-value"
+              id="modal-tid"
+              title="alex.morgan@acmearch.com"
+              >alex.morgan@acmearch.com</span
+            >
+          </div>
+          <div
+            id="security-modal-error-host"
+            class="proto-error-host proto-error-host--modal"
+            role="alert"
+            aria-live="assertive"
+            hidden
+          ></div>
+        </div>
+        <div class="modal__footer">
+          <button type="button" class="btn btn--secondary" id="btn-modal-cancel">
+            Cancel
+          </button>
+          <button type="button" class="btn btn--primary" id="btn-modal-continue">
+            Continue to Account Selection
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
