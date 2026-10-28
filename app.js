@@ -7,56 +7,18 @@
     C: "patricia.nguyen@enterprisedesign.com",
     D: "jamie.lee@designstudioc.com",
     E: "alex.morgan@acmearch.com",
-    F: "alex.morgan@acmearch.com",
   };
 
-  const SCENARIO_E_MODAL_ALERTS = {
-    "session-timeout": {
-      tone: "danger",
-      title: "Session expired",
-      message:
-        "Your Trimble ID session timed out before commerce handoff. Sign in again to continue to Secure Trimble Commerce.",
-    },
-    "sso-failure": {
-      tone: "warning",
-      title: "SSO redirect failed",
-      message:
-        "Enterprise federated SSO could not complete the redirect to Trimble Commerce. Retry sign-in or contact your IT administrator.",
-    },
-    "currency-region": {
-      tone: "warning",
-      title: "Currency or region mismatch",
-      message:
-        "Your account entitlement does not match the storefront currency or region for this extension SKU. Choose another account or update billing region.",
-    },
-    "auth-block": {
-      tone: "danger",
-      title: "Critical transactional block",
-      message:
-        "Trimble Commerce blocked this handoff due to a critical authentication or transactional policy violation. Contact your administrator or Trimble support before retrying.",
-    },
-  };
+  const SANDBOX_SCENARIO_STORAGE_KEY = "prototype-scenario";
 
-  const SCENARIO_F_ACCOUNT_ALERTS = {
-    "entitlement-timeout": {
-      tone: "danger",
-      title: "Unable to load accounts",
-      message:
-        "The entitlement service timed out while retrieving accounts for your Trimble ID. Refresh the page or try again in a few minutes.",
-    },
-    "zero-accounts": {
-      tone: "danger",
-      title: "No authorized accounts",
-      message:
-        "We could not find any commerce accounts you are permitted to use for this purchase. Request access from your Account Owner or create an individual account.",
-    },
-    "setup-incomplete": {
+  const SCENARIO_E_ACCOUNT_ALERTS = {
+    "scenario-e-incomplete": {
       tone: "warning",
       title: "Account setup incomplete",
       message:
         "One or more accounts require setup before checkout. Complete Account Setup for the selected organization to continue.",
     },
-    "permission-downgrade": {
+    "scenario-e-downgrade": {
       tone: "warning",
       title: "Permissions changed during session",
       message:
@@ -146,10 +108,8 @@
     dvwStateWrap: () => document.getElementById("dvw-state-wrap"),
     dvwStateRadios: () => document.querySelectorAll('input[name="dvw-state"]'),
     dvwStateBRadios: () => document.querySelectorAll('input[name="dvw-state-b"]'),
-    dvwStateERadios: () => document.querySelectorAll('input[name="dvw-state-e"]'),
-    dvwStateFRadios: () => document.querySelectorAll('input[name="dvw-state-f"]'),
+    scenarioESubstateRadios: () => document.querySelectorAll('input[name="scenario-e"]'),
     simTid: () => document.getElementById("sim-tid"),
-    modalTid: () => document.getElementById("modal-tid"),
     tryPurchaseBtn: () => document.getElementById("btn-try-purchase"),
     purchaseMenu: () => document.getElementById("try-purchase-menu"),
     purchaseDropdown: () => document.getElementById("try-purchase-dropdown"),
@@ -162,11 +122,12 @@
     modalContinue: () => document.getElementById("btn-modal-continue"),
     modalCancel: () => document.getElementById("btn-modal-cancel"),
     modalClose: () => document.getElementById("btn-modal-close"),
-    modalBodyLead: () => document.getElementById("modal-body-lead"),
+    modalBodyLead: () => document.getElementById("sec-modal-desc-e"),
     accountGrid: () => document.getElementById("account-grid"),
     continueCheckout: () => document.getElementById("btn-continue-checkout"),
     cancelSuew: () => document.getElementById("link-cancel-suew"),
     requestContext: () => document.getElementById("request-context"),
+    devAnnotationDock: () => document.querySelector(".dev-annotation-dock"),
   };
 
   function getScenario() {
@@ -220,13 +181,38 @@
   }
 
   function getScenarioESubstate() {
-    const selected = document.querySelector('input[name="dvw-state-e"]:checked');
-    return selected ? selected.value : "session-timeout";
+    const selected = document.querySelector('input[name="scenario-e"]:checked');
+    const value = selected ? selected.value : "scenario-e-incomplete";
+    if (value === "setup-incomplete") {
+      return "scenario-e-incomplete";
+    }
+    if (value === "permission-downgrade") {
+      return "scenario-e-downgrade";
+    }
+    return value;
   }
 
-  function getScenarioFSubstate() {
-    const selected = document.querySelector('input[name="dvw-state-f"]:checked');
-    return selected ? selected.value : "entitlement-timeout";
+  function normalizeSandboxScenarioSelection() {
+    let stored = null;
+    try {
+      stored = sessionStorage.getItem(SANDBOX_SCENARIO_STORAGE_KEY);
+    } catch (err) {
+      stored = null;
+    }
+    if (stored === "F") {
+      stored = "E";
+      const eRadio = document.getElementById("scenario-e-selector");
+      if (eRadio) {
+        eRadio.checked = true;
+      }
+      try {
+        sessionStorage.setItem(SANDBOX_SCENARIO_STORAGE_KEY, "E");
+      } catch (err2) {
+        /* ignore */
+      }
+    }
+    state.scenario =
+      document.querySelector('input[name="scenario"]:checked')?.value || stored || "A";
   }
 
   function cloneAccount(account) {
@@ -263,12 +249,9 @@
       }
       return applyScenarioBCheckoutAuthority(ACCOUNTS_MULTI);
     }
-    if (scenario === "F") {
-      const sub = getScenarioFSubstate();
-      if (sub === "zero-accounts") {
-        return [];
-      }
-      if (sub === "setup-incomplete") {
+    if (scenario === "E") {
+      const sub = getScenarioESubstate();
+      if (sub === "scenario-e-incomplete") {
         return ACCOUNTS_MULTI.map((account) => {
           const copy = cloneAccount(account);
           if (copy.buyerAuthorized) {
@@ -277,7 +260,7 @@
           return copy;
         });
       }
-      if (sub === "permission-downgrade") {
+      if (sub === "scenario-e-downgrade") {
         return ACCOUNTS_MULTI.map((account) => {
           const copy = cloneAccount(account);
           if (copy.id === "894201") {
@@ -316,35 +299,15 @@
     if (!host) {
       return;
     }
-    if (getScenario() !== "E") {
-      host.hidden = true;
-      host.innerHTML = "";
-      if (continueBtn) {
-        continueBtn.disabled = false;
-      }
-      return;
-    }
-    const sub = getScenarioESubstate();
-    const alertDef = SCENARIO_E_MODAL_ALERTS[sub];
-    if (!alertDef) {
-      host.hidden = true;
-      host.innerHTML = "";
-      return;
-    }
-    host.innerHTML = renderProtoAlertMarkup(alertDef);
-    host.hidden = false;
+    host.hidden = true;
+    host.innerHTML = "";
     if (continueBtn) {
-      continueBtn.disabled =
-        sub === "session-timeout" || sub === "auth-block";
+      continueBtn.disabled = false;
     }
   }
 
   function isAccountEntitlementFailureActive() {
-    return (
-      getScenario() === "F" &&
-      getScenarioFSubstate() === "entitlement-timeout" &&
-      !state.accountEntitlementLoaded
-    );
+    return false;
   }
 
   function renderAccountEntitlementServiceError(shouldFocusHeading) {
@@ -456,49 +419,16 @@
       dock.classList.remove("account-dock--hidden");
     }
 
-    if (getScenario() !== "F") {
+    if (getScenario() !== "E") {
       state.accountEntitlementLoaded = false;
       state.accountSelectionFailureFocusKey = null;
       return;
     }
 
-    const sub = getScenarioFSubstate();
-    if (sub !== "entitlement-timeout") {
-      state.accountEntitlementLoaded = false;
-    }
-
-    if (sub === "entitlement-timeout" && !state.accountEntitlementLoaded) {
-      grid.classList.add("account-grid--hidden");
-      if (dock) {
-        dock.classList.add("account-dock--hidden");
-      }
-      const focusKey = "entitlement-timeout";
-      const shouldFocus = state.accountSelectionFailureFocusKey !== focusKey;
-      if (shouldFocus) {
-        state.accountSelectionFailureFocusKey = focusKey;
-      }
-      renderAccountEntitlementServiceError(shouldFocus);
-      return;
-    }
-
-    if (sub === "zero-accounts") {
-      grid.classList.add("account-grid--hidden");
-      if (dock) {
-        dock.classList.add("account-dock--hidden");
-      }
-      const focusKey = "zero-accounts";
-      const shouldFocus = state.accountSelectionFailureFocusKey !== focusKey;
-      if (shouldFocus) {
-        state.accountSelectionFailureFocusKey = focusKey;
-      }
-      renderAccountZeroAccountsEmptyState(shouldFocus);
-      emptyHost.hidden = false;
-      return;
-    }
-
     state.accountSelectionFailureFocusKey = null;
 
-    const alertDef = SCENARIO_F_ACCOUNT_ALERTS[sub];
+    const sub = getScenarioESubstate();
+    const alertDef = SCENARIO_E_ACCOUNT_ALERTS[sub];
     if (!alertDef) {
       return;
     }
@@ -520,11 +450,6 @@
   }
 
   function onScenarioESubstateChange() {
-    updateSecurityModalContent();
-    syncPrototypeChromeTop();
-  }
-
-  function onScenarioFSubstateChange() {
     state.accountEntitlementLoaded = false;
     state.accountSelectionFailureFocusKey = null;
     const visibleIds = new Set(accountsForSelectionPage().map((account) => account.id));
@@ -534,6 +459,10 @@
     if (state.route === "/account-selection") {
       renderAccountGrid();
       updateDockButton();
+      syncAccountSelectionErrorUi();
+    }
+    if (state.modalOpen) {
+      updateSecurityModalContent();
     }
     syncPrototypeChromeTop();
   }
@@ -550,11 +479,6 @@
   function syncTidDisplay() {
     const tid = getTid();
     els.simTid().textContent = tid;
-    const modalTid = els.modalTid();
-    if (modalTid) {
-      modalTid.textContent = tid;
-      modalTid.setAttribute("title", tid);
-    }
     const initials = initialsFromTid(tid);
     const avatar = els.suewAvatar();
     if (avatar) {
@@ -991,68 +915,57 @@
     return !selected || selected.value === "exists";
   }
 
+  const MODAL_RETURN_TO_SUEW_SUFFIX =
+    " To return to Extension Warehouse at any time, use your browser's Back button or click Cancel.";
+
   function modalBodyLeadHtml() {
     const scenario = getScenario();
     const shop = '<span class="nowrap">shop.trimble.com</span>';
-    if (scenario === "B") {
+    if (scenario === "B" || scenario === "E") {
       return (
         "You are leaving SketchUp Extension Warehouse to select an account on Trimble Commerce (" +
         shop +
-        ")."
+        ")." +
+        MODAL_RETURN_TO_SUEW_SUFFIX
       );
     }
     if (scenario === "C" || scenario === "D") {
       return (
         "You are leaving SketchUp Extension Warehouse to submit a purchase request on Trimble Commerce (" +
         shop +
-        ")."
-      );
-    }
-    if (scenario === "E") {
-      return (
-        "Security handoff error prototype — review the alert below before continuing to Trimble Commerce (" +
-        shop +
-        ")."
-      );
-    }
-    if (scenario === "F") {
-      return (
-        "You are leaving SketchUp Extension Warehouse to select an account on Trimble Commerce (" +
-        shop +
-        "). Account selector error states apply on the next page."
+        ")." +
+        MODAL_RETURN_TO_SUEW_SUFFIX
       );
     }
     return (
       "You are leaving SketchUp Extension Warehouse to complete your order on Trimble Commerce (" +
       shop +
-      ")."
+      ")." +
+      MODAL_RETURN_TO_SUEW_SUFFIX
     );
   }
 
-  function modalContinueLabel() {
+  function getModalContinueActionTarget() {
     const scenario = getScenario();
     if (scenario === "A") {
-      return isDvwAccountExists()
-        ? "Continue to Checkout"
-        : "Continue to Account Setup";
+      return isDvwAccountExists() ? "route-checkout" : "route-account-setup";
+    }
+    if (scenario === "B" || scenario === "E") {
+      return "route-account-selection";
     }
     if (scenario === "C" || scenario === "D") {
-      return "Continue to Request Page";
+      return "route-purchase-request";
     }
-    if (scenario === "E") {
-      const eSub = getScenarioESubstate();
-      if (eSub === "session-timeout") {
-        return "Sign In Again";
-      }
-      if (eSub === "auth-block") {
-        return "Return to Extension Warehouse";
-      }
-      return "Continue to Account Selection";
+    return "route-account-selection";
+  }
+
+  function syncModalContinueButton() {
+    const continueBtn = els.modalContinue();
+    if (!continueBtn) {
+      return;
     }
-    if (scenario === "F") {
-      return "Continue to Account Selection";
-    }
-    return "Continue to Account Selection";
+    continueBtn.setAttribute("data-action-target", getModalContinueActionTarget());
+    continueBtn.setAttribute("aria-describedby", "sec-modal-desc-e");
   }
 
   function updateSecurityModalContent() {
@@ -1060,7 +973,7 @@
     if (lead) {
       lead.innerHTML = modalBodyLeadHtml();
     }
-    els.modalContinue().textContent = modalContinueLabel();
+    syncModalContinueButton();
     syncTidDisplay();
     syncSecurityModalErrorAlert();
   }
@@ -1068,6 +981,15 @@
   function handlePurchaseFromPdp() {
     closePurchaseMenu();
     openSecurityModal();
+  }
+
+  function syncSecurityModalDevAnnotation(isVisible) {
+    const dock = els.devAnnotationDock();
+    if (!dock) {
+      return;
+    }
+    dock.hidden = !isVisible;
+    dock.setAttribute("aria-hidden", "true");
   }
 
   function openSecurityModal() {
@@ -1079,6 +1001,7 @@
     els.modal().hidden = false;
     els.backdrop().setAttribute("aria-hidden", "false");
     els.modal().setAttribute("aria-hidden", "false");
+    syncSecurityModalDevAnnotation(true);
 
     els.modalContinue().focus();
     document.body.style.overflow = "hidden";
@@ -1091,6 +1014,7 @@
     els.modal().hidden = true;
     els.backdrop().setAttribute("aria-hidden", "true");
     els.modal().setAttribute("aria-hidden", "true");
+    syncSecurityModalDevAnnotation(false);
     document.body.style.overflow = "";
 
     if (restoreFocus) {
@@ -1102,33 +1026,32 @@
   }
 
   function evaluateContinueFromModal() {
-    const scenario = getScenario();
-
-    const eSub = getScenarioESubstate();
-    if (scenario === "E" && (eSub === "session-timeout" || eSub === "auth-block")) {
-      syncSecurityModalErrorAlert();
-      return;
-    }
+    const continueBtn = els.modalContinue();
+    const actionTarget =
+      (continueBtn && continueBtn.getAttribute("data-action-target")) ||
+      getModalContinueActionTarget();
 
     closeSecurityModal({ restoreFocus: false });
 
-    if (scenario === "A") {
-      if (isDvwAccountExists()) {
-        routeTo("/checkout", { context: { account: SINGLE_ACCOUNT }, resetSelection: true });
-      } else {
-        routeTo("/account-setup", { resetSelection: true });
-      }
+    if (actionTarget === "route-checkout") {
+      routeTo("/checkout", { context: { account: SINGLE_ACCOUNT }, resetSelection: true });
       return;
     }
 
-    if (scenario === "B" || scenario === "E" || scenario === "F") {
+    if (actionTarget === "route-account-setup") {
+      routeTo("/account-setup", { resetSelection: true });
+      return;
+    }
+
+    if (actionTarget === "route-account-selection") {
       state.accountEntitlementLoaded = false;
       state.accountSelectionFailureFocusKey = null;
       routeTo("/account-selection", { resetSelection: true });
       return;
     }
 
-    if (scenario === "C" || scenario === "D") {
+    if (actionTarget === "route-purchase-request") {
+      const scenario = getScenario();
       const stub = getNonBuyerStubForScenario(scenario);
       routeTo("/request-purchase", {
         resetSelection: true,
@@ -1228,12 +1151,6 @@
       return;
     }
 
-    if (getScenario() === "F" && getScenarioFSubstate() === "zero-accounts") {
-      btn.disabled = true;
-      btn.textContent = "No Accounts Available";
-      return;
-    }
-
     const account = resolveAccountForSelection(state.selectedAccountId);
 
     if (!account) {
@@ -1270,7 +1187,20 @@
 
   function onScenarioChange() {
     const checked = document.querySelector('input[name="scenario"]:checked');
-    state.scenario = checked ? checked.value : "A";
+    let nextScenario = checked ? checked.value : "A";
+    if (nextScenario === "F") {
+      nextScenario = "E";
+      const eRadio = document.getElementById("scenario-e-selector");
+      if (eRadio) {
+        eRadio.checked = true;
+      }
+    }
+    state.scenario = nextScenario;
+    try {
+      sessionStorage.setItem(SANDBOX_SCENARIO_STORAGE_KEY, nextScenario);
+    } catch (err) {
+      /* ignore */
+    }
     state.accountEntitlementLoaded = false;
     state.accountSelectionFailureFocusKey = null;
     syncScenarioPermissionState();
@@ -1294,7 +1224,7 @@
 
   function toggleScenarioToggles() {
     const scenario = getScenario();
-    ["A", "B", "C", "D", "E", "F"].forEach((key) => {
+    ["A", "B", "C", "D", "E"].forEach((key) => {
       const block = document.getElementById("scenario-substate-" + key.toLowerCase());
       if (block) {
         block.hidden = scenario !== key;
@@ -1622,11 +1552,8 @@
     els.dvwStateBRadios().forEach((radio) => {
       radio.addEventListener("change", onScenarioBSubstateChange);
     });
-    els.dvwStateERadios().forEach((radio) => {
+    els.scenarioESubstateRadios().forEach((radio) => {
       radio.addEventListener("change", onScenarioESubstateChange);
-    });
-    els.dvwStateFRadios().forEach((radio) => {
-      radio.addEventListener("change", onScenarioFSubstateChange);
     });
 
     window.addEventListener("resize", syncPrototypeChromeTop);
@@ -1649,6 +1576,7 @@
     initCheckoutPage();
     initRequestAccessPage();
     initAccountSetupPage();
+    normalizeSandboxScenarioSelection();
     toggleScenarioToggles();
     syncScenarioPermissionState();
     syncTidDisplay();

@@ -57,12 +57,14 @@
               <span>D: Product User</span>
             </label>
             <label class="prototype-radio-option">
-              <input type="radio" name="scenario" value="E" />
-              <span>E: Security Modal Errors</span>
-            </label>
-            <label class="prototype-radio-option">
-              <input type="radio" name="scenario" value="F" />
-              <span>F: Account Selector Errors</span>
+              <input
+                type="radio"
+                name="scenario"
+                id="scenario-e-selector"
+                value="E"
+                aria-label="E: Account Selector Errors"
+              />
+              <span>E: Account Selector Errors</span>
             </label>
           </div>
         </div>
@@ -159,61 +161,32 @@
           </div>
 
           <div id="scenario-substate-e" class="scenario-substate sim-bar__row-block" hidden>
-            <span class="sim-bar__label sim-bar__label--section"
-              >DVW ECOMMERCE ACCOUNT STATE / EDGE CASES &amp; ERROR STATES:</span
-            >
+            <span class="sim-bar__label sim-bar__label--section">E: Account Selector Errors</span>
             <fieldset
               class="sim-bar__dvw"
-              id="dvw-state-e-wrap"
+              id="scenario-e-wrap"
               role="radiogroup"
-              aria-label="Security modal error state for Scenario E"
+              aria-label="E: Account Selector Errors"
             >
+              <legend class="visually-hidden">E: Account Selector Errors</legend>
               <div class="sim-bar__dvw-options prototype-radio-group prototype-radio-group--stack">
                 <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-e" value="session-timeout" checked />
-                  <span>Session Timeout / Expired Token</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-e" value="sso-failure" />
-                  <span>Enterprise Federated SSO Redirect Failure</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-e" value="currency-region" />
-                  <span>Mismatched Currency / Region Entitlement</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-e" value="auth-block" />
-                  <span>Critical Transactional / Auth Block</span>
-                </label>
-              </div>
-            </fieldset>
-          </div>
-
-          <div id="scenario-substate-f" class="scenario-substate sim-bar__row-block" hidden>
-            <span class="sim-bar__label sim-bar__label--section"
-              >DVW ECOMMERCE ACCOUNT STATE / EDGE CASES &amp; ERROR STATES:</span
-            >
-            <fieldset
-              class="sim-bar__dvw"
-              id="dvw-state-f-wrap"
-              role="radiogroup"
-              aria-label="Account selector error state for Scenario F"
-            >
-              <div class="sim-bar__dvw-options prototype-radio-group prototype-radio-group--stack">
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-f" value="entitlement-timeout" checked />
-                  <span>Entitlement Service Timeout / Account Retrieval Failure</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-f" value="zero-accounts" />
-                  <span>Zero Authorized Accounts</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-f" value="setup-incomplete" />
+                  <input
+                    type="radio"
+                    name="scenario-e"
+                    id="scenario-e-incomplete"
+                    value="scenario-e-incomplete"
+                    checked
+                  />
                   <span>Account Setup Incomplete</span>
                 </label>
                 <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-f" value="permission-downgrade" />
+                  <input
+                    type="radio"
+                    name="scenario-e"
+                    id="scenario-e-downgrade"
+                    value="scenario-e-downgrade"
+                  />
                   <span>Concurrent Account Permission Downgrade</span>
                 </label>
               </div>
@@ -1477,10 +1450,10 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="security-modal-title"
-      aria-describedby="security-modal-body"
+      aria-describedby="sec-modal-desc-e"
       hidden
     >
-      <div class="modal__panel">
+      <div class="modal__panel security-modal-card">
         <div class="modal__head">
           <h2 id="security-modal-title" class="modal__title">
             Proceeding to Secure Trimble Commerce
@@ -1495,19 +1468,11 @@
           </button>
         </div>
         <div id="security-modal-body" class="modal__body">
-          <p id="modal-body-lead">
-            You are leaving SketchUp Extension Warehouse to complete your order on Trimble Commerce
-            (<span class="nowrap">shop.trimble.com</span>).
+          <p id="sec-modal-desc-e" class="modal__description">
+            You are leaving SketchUp Extension Warehouse to select an account on Trimble Commerce
+            (<span class="nowrap">shop.trimble.com</span>). To return to Extension Warehouse at any
+            time, use your browser's Back button or click Cancel.
           </p>
-          <div class="modal__verified-id" role="status" aria-live="polite">
-            <span class="modal__verified-id-label">Verified Trimble ID:</span>
-            <span
-              class="modal__verified-id-value"
-              id="modal-tid"
-              title="alex.morgan@acmearch.com"
-              >alex.morgan@acmearch.com</span
-            >
-          </div>
           <div
             id="security-modal-error-host"
             class="proto-error-host proto-error-host--modal"
@@ -1516,16 +1481,33 @@
             hidden
           ></div>
         </div>
-        <div class="modal__footer">
-          <button type="button" class="btn btn--secondary" id="btn-modal-cancel">
+        <div class="modal__footer modal-actions">
+          <button
+            type="button"
+            class="btn btn--secondary modus-btn-secondary modal-actions__cancel"
+            id="btn-modal-cancel"
+          >
             Cancel
           </button>
-          <button type="button" class="btn btn--primary" id="btn-modal-continue">
-            Continue to Account Selection
+          <button
+            type="button"
+            class="btn btn--primary"
+            id="btn-modal-continue"
+            data-action-target="route-account-selection"
+            aria-describedby="sec-modal-desc-e"
+          >
+            Continue
           </button>
         </div>
       </div>
     </div>
+
+    <aside class="dev-annotation-dock" aria-hidden="true" hidden>
+      <span class="dev-badge">DEV NOTE</span>
+      <span class="dev-text"
+        >See if the SketchUp Extension Warehouse team can add this proposed security modal.</span
+      >
+    </aside>
 
     <script src="app.js"></script>
   </body>
