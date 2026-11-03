@@ -14,219 +14,231 @@
       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=force_fullwidth_03" />
   </head>
   <body>
-    <!-- Persona & scenario simulation bar -->
     <header
-      class="sim-bar prototype-control-header"
-      id="prototype-control-header"
-      role="banner"
-      aria-label="Prototype scenario controls"
+      class="sandbox-toolbar"
+      id="sandbox-toolbar"
+      role="region"
+      aria-label="Prototype Test Controls"
     >
-      <div class="sim-bar__inner prototype-control-header__inner">
-        <div class="sim-bar__row sim-bar__row--scenarios prototype-control-header__scenarios">
-          <span class="sim-bar__label">Test scenario:</span>
-          <div
-            class="prototype-radio-group"
-            role="group"
-            aria-label="Select persona scenario"
-          >
-            <label class="prototype-radio-option">
-              <input type="radio" name="scenario" value="A" checked />
-              <span>A: AO/SAO - Single Account</span>
-            </label>
-            <label
-              class="prototype-radio-option"
-              title="Scenario B: Multiple Accounts (Routes to Account Selection)"
-            >
-              <input
-                type="radio"
-                name="scenario"
-                value="B"
-                aria-label="Scenario B: Multiple Accounts (Routes to Account Selection Page)"
-              />
-              <span>B: Multiple Accounts</span>
-            </label>
-            <label class="prototype-radio-option">
-              <input type="radio" name="scenario" value="C" />
-              <span>C: License Admin</span>
-            </label>
-            <label class="prototype-radio-option">
-              <input type="radio" name="scenario" value="D" />
-              <span>D: Product User</span>
-            </label>
-            <label class="prototype-radio-option">
-              <input type="radio" name="scenario" value="E" />
-              <span>E: Security Modal Errors</span>
-            </label>
-            <label class="prototype-radio-option">
-              <input type="radio" name="scenario" value="F" />
-              <span>F: Account Selector Errors</span>
-            </label>
-          </div>
+      <div class="sandbox-main-row">
+        <div class="sandbox-brand">Trimble Prototype Sandbox</div>
+
+        <div class="sandbox-group sandbox-group-scope">
+          <label for="sb-scope">Feature Scope:</label>
+          <input
+            type="text"
+            id="sb-scope"
+            class="sandbox-input-readonly sandbox-input-wide"
+            value="DXPBK-2012 | POC: SketchUp Extension Warehouse to Marketplace Direct Cart &amp; Checkout Integration"
+            readonly
+            tabindex="-1"
+            aria-readonly="true"
+          />
         </div>
 
-        <div
-          class="sim-bar__row sim-bar__row--dvw"
-          id="scenario-substate-panel"
-          aria-live="polite"
+        <div class="sandbox-group">
+          <label for="sb-role">Role &amp; Permissions:</label>
+          <select id="sb-role" class="sandbox-select">
+            <optgroup label="Commercial Authorities (Buyers)">
+              <option value="ao" selected>Account Owner</option>
+              <option value="sao">Secondary Account Owner</option>
+            </optgroup>
+            <optgroup label="Operational Roles (Non-Buyers)">
+              <option value="admin">License Admin</option>
+              <option value="non-buyer">Product User</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="sandbox-group">
+          <label for="sb-purchase">Purchase Type:</label>
+          <input
+            type="text"
+            id="sb-purchase"
+            class="sandbox-input-readonly sandbox-input-purchase"
+            value="SaaS Subscription"
+            readonly
+            tabindex="-1"
+            aria-readonly="true"
+          />
+        </div>
+
+        <button
+          type="button"
+          id="sb-toggle-btn"
+          class="sandbox-toggle-btn"
+          aria-expanded="true"
+          aria-controls="sb-sub-row"
+          aria-label="Toggle feature control options"
         >
-          <div id="scenario-substate-a" class="scenario-substate sim-bar__row-block">
-            <span class="sim-bar__label sim-bar__label--section">DVW ECOMMERCE ACCOUNT STATE:</span>
-            <fieldset
-              class="sim-bar__dvw"
-              id="dvw-state-wrap"
-              role="radiogroup"
-              aria-label="Direct-via-Web eCommerce account state for Scenario A"
-            >
-              <div class="sim-bar__dvw-options prototype-radio-group prototype-radio-group--stack">
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state" value="exists" checked />
-                  <span>DvW eCommerce account exists (routes to checkout)</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state" value="not-created" />
-                  <span>DvW eCommerce account not created (routes to account setup)</span>
-                </label>
-              </div>
-            </fieldset>
-          </div>
+          −
+        </button>
+      </div>
 
-          <div id="scenario-substate-b" class="scenario-substate sim-bar__row-block" hidden>
-            <span class="sim-bar__label sim-bar__label--section">DVW ECOMMERCE ACCOUNT STATE:</span>
-            <fieldset
-              class="sim-bar__dvw"
-              id="dvw-state-b-wrap"
-              role="radiogroup"
-              aria-label="DvW eCommerce account state for Scenario B"
-            >
-              <div class="sim-bar__dvw-options prototype-radio-group prototype-radio-group--stack">
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-b" value="ao-sao-only" />
-                  <span>AO/SAO Only</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-b" value="full-matrix" checked />
-                  <span>AO/SAO, License Admin, and Product User</span>
-                </label>
-              </div>
-            </fieldset>
-          </div>
+      <div id="sb-sub-row" class="sandbox-sub-row">
+        <span class="sandbox-sub-prefix">&#8627; Feature Controls (DXPBK-2012):</span>
 
-          <div id="scenario-substate-c" class="scenario-substate sim-bar__row-block" hidden>
-            <span class="sim-bar__label sim-bar__label--section">DVW ECOMMERCE ACCOUNT STATE:</span>
-            <fieldset
-              class="sim-bar__dvw"
-              role="radiogroup"
-              aria-label="DvW eCommerce account state for Scenario C"
-            >
-              <div class="prototype-radio-group prototype-radio-group--stack">
-                <label class="prototype-radio-option prototype-radio-option--static">
-                  <input
-                    type="radio"
-                    name="dvw-state-c"
-                    value="request-account-action"
-                    checked
-                    disabled
-                  />
-                  <span>Request Account Action</span>
-                </label>
-              </div>
-            </fieldset>
-          </div>
-
-          <div id="scenario-substate-d" class="scenario-substate sim-bar__row-block" hidden>
-            <span class="sim-bar__label sim-bar__label--section">DVW ECOMMERCE ACCOUNT STATE:</span>
-            <fieldset
-              class="sim-bar__dvw"
-              role="radiogroup"
-              aria-label="DvW eCommerce account state for Scenario D"
-            >
-              <div class="prototype-radio-group prototype-radio-group--stack">
-                <label class="prototype-radio-option prototype-radio-option--static">
-                  <input
-                    type="radio"
-                    name="dvw-state-d"
-                    value="request-account-action"
-                    checked
-                    disabled
-                  />
-                  <span>Request Account Action</span>
-                </label>
-              </div>
-            </fieldset>
-          </div>
-
-          <div id="scenario-substate-e" class="scenario-substate sim-bar__row-block" hidden>
-            <span class="sim-bar__label sim-bar__label--section"
-              >DVW ECOMMERCE ACCOUNT STATE / EDGE CASES &amp; ERROR STATES:</span
-            >
-            <fieldset
-              class="sim-bar__dvw"
-              id="dvw-state-e-wrap"
-              role="radiogroup"
-              aria-label="Security modal error state for Scenario E"
-            >
-              <div class="sim-bar__dvw-options prototype-radio-group prototype-radio-group--stack">
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-e" value="session-timeout" checked />
-                  <span>Session Timeout / Expired Token</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-e" value="sso-failure" />
-                  <span>Enterprise Federated SSO Redirect Failure</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-e" value="currency-region" />
-                  <span>Mismatched Currency / Region Entitlement</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-e" value="auth-block" />
-                  <span>Critical Transactional / Auth Block</span>
-                </label>
-              </div>
-            </fieldset>
-          </div>
-
-          <div id="scenario-substate-f" class="scenario-substate sim-bar__row-block" hidden>
-            <span class="sim-bar__label sim-bar__label--section"
-              >DVW ECOMMERCE ACCOUNT STATE / EDGE CASES &amp; ERROR STATES:</span
-            >
-            <fieldset
-              class="sim-bar__dvw"
-              id="dvw-state-f-wrap"
-              role="radiogroup"
-              aria-label="Account selector error state for Scenario F"
-            >
-              <div class="sim-bar__dvw-options prototype-radio-group prototype-radio-group--stack">
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-f" value="entitlement-timeout" checked />
-                  <span>Entitlement Service Timeout / Account Retrieval Failure</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-f" value="zero-accounts" />
-                  <span>Zero Authorized Accounts</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-f" value="setup-incomplete" />
-                  <span>Account Setup Incomplete</span>
-                </label>
-                <label class="prototype-radio-option">
-                  <input type="radio" name="dvw-state-f" value="permission-downgrade" />
-                  <span>Concurrent Account Permission Downgrade</span>
-                </label>
-              </div>
-            </fieldset>
-          </div>
+        <div class="sandbox-group">
+          <label for="sb-stage">Release Stage:</label>
+          <input
+            type="text"
+            id="sb-stage"
+            class="sandbox-input-readonly sandbox-input-stage"
+            value="Stage 1: MVP"
+            readonly
+            tabindex="-1"
+            aria-readonly="true"
+          />
         </div>
 
-        <div class="sim-bar__row sim-bar__row--tid">
-          <p class="sim-bar__tid" aria-live="polite">
-            Trimble ID: <span id="sim-tid">alex.morgan@acmearch.com</span>
-          </p>
+        <div class="sandbox-group" id="sandbox-group-account-scope">
+          <label for="sb-account-scope">Account Selector Scope:</label>
+          <select id="sb-account-scope" class="sandbox-select" aria-describedby="sb-scope-desc">
+            <option value="single_account" selected>Single Account (Default)</option>
+            <option value="multi_buyer_only">Multi-Account (All Authorized Buyers)</option>
+            <option value="multi_mixed">Multi-Account (Mixed Roles &amp; Non-Buyers)</option>
+          </select>
+          <span id="sb-scope-desc" class="sr-only"
+            >Controls the account hierarchy rendered in the Account Selector</span
+          >
+        </div>
+
+        <div class="sandbox-group" id="sandbox-group-account-state">
+          <label for="sb-account-state">DvW Account State:</label>
+          <select id="sb-account-state" class="sandbox-select">
+            <option value="account_exists" selected>Account Exists</option>
+            <option value="not_created">Not Created</option>
+          </select>
+        </div>
+
+        <div class="sandbox-group">
+          <label for="sb-error-injection">Simulated Error / Edge Case:</label>
+          <select id="sb-error-injection" class="sandbox-select">
+            <option value="none" selected>None (Happy Path)</option>
+            <optgroup label="Account Onboarding Errors">
+              <option value="err_account_setup_incomplete">Account Setup Incomplete</option>
+            </optgroup>
+          </select>
         </div>
       </div>
+
+      <section
+        class="sandbox-dev-drawer"
+        id="sb-dev-drawer"
+        aria-label="Prototype developer notes"
+      >
+        <div class="sandbox-dev-drawer__bar">
+          <span class="sandbox-dev-indicator" aria-hidden="true"></span>
+          <div class="sandbox-dev-drawer__header">
+            <strong id="sb-dev-note-title" class="sandbox-dev-title"
+              >STAGE 1: MVP SCOPE (SUEW DIRECT CART &amp; CHECKOUT INTEGRATION)</strong
+            >
+            <button
+              type="button"
+              id="sb-notes-toggle-btn"
+              class="sandbox-dev-drawer__toggle"
+              aria-expanded="false"
+              aria-controls="sb-notes-panel"
+            >
+              Show Dev Notes
+            </button>
+          </div>
+        </div>
+        <div id="sb-notes-panel" class="sandbox-dev-panel is-hidden" aria-hidden="true">
+          <p class="sandbox-dev-desc sandbox-dev-drawer__summary">
+            Delivers the baseline transactional handoff between SketchUp Extension Warehouse (SUEW)
+            and Trimble Marketplace Direct Cart &amp; Checkout via Trimble ID (TID) identity and
+            Customer Data Hub (CDH) entitlement telemetry.
+          </p>
+          <div class="sandbox-dev-columns">
+            <div class="sandbox-dev-col">
+              <h3 class="sandbox-dev-subtitle">MVP CAPABILITIES</h3>
+              <ul class="sandbox-tier-list">
+                <li>
+                  <span class="tier-pill tier-pill-label">Identity Handoff:</span>
+                  <span class="rule-text"
+                    >Universal Trimble ID (TID) OAuth session verification</span
+                  >
+                </li>
+                <li>
+                  <span class="tier-pill tier-pill-label">Commercial Routing:</span>
+                  <span class="rule-text"
+                    >Account Owner &amp; Secondary Owner direct path to checkout</span
+                  >
+                </li>
+                <li>
+                  <span class="tier-pill tier-pill-label">Delegated Requisition:</span>
+                  <span class="rule-text"
+                    >License Admin &amp; Product User route to Request Purchase (Stub 3)</span
+                  >
+                </li>
+                <li>
+                  <span class="tier-pill tier-pill-label">Security Interstitial:</span>
+                  <span class="rule-text"
+                    >Modus #EFEFF4 surface modal with static Continue action</span
+                  >
+                </li>
+                <li>
+                  <span class="tier-pill tier-pill-label">Onboarding Intercept:</span>
+                  <span class="rule-text"
+                    >Unregistered buyers route to Account Setup (Stub 2)</span
+                  >
+                </li>
+              </ul>
+            </div>
+            <div class="sandbox-dev-col">
+              <h3 class="sandbox-dev-subtitle">ROUTING &amp; ENTITLEMENT RESOLUTION</h3>
+              <ul class="sandbox-tier-list">
+                <li>
+                  <span class="tier-pill tier-pill-active">ACTIVE ROUTE</span>
+                  <strong>Direct Checkout:</strong>
+                  <span class="rule-text"
+                    >Active (Commercial Buyer + Account Exists -&gt; shop.trimble.com)</span
+                  >
+                </li>
+                <li>
+                  <span class="tier-pill tier-pill-active">ACTIVE ROUTE</span>
+                  <strong>Purchase Requisition:</strong>
+                  <span class="rule-text"
+                    >Active (Operational Role -&gt; #/request-purchase)</span
+                  >
+                </li>
+                <li>
+                  <span class="tier-pill tier-pill-active">ACTIVE ROUTE</span>
+                  <strong>Account Setup:</strong>
+                  <span class="rule-text"
+                    >Active (Buyer + Account Not Created -&gt; #/account-setup)</span
+                  >
+                </li>
+                <li>
+                  <span class="tier-pill tier-pill-standby">STANDBY</span>
+                  <strong>Account Selector:</strong>
+                  <span class="rule-text"
+                    >Standby (Renders when Account Selector Scope is Multi-Account)</span
+                  >
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="sandbox-dev-footer sandbox-dev-drawer__hint">
+            <p class="sandbox-dev-footer-text">
+              <strong>Evaluation Guide:</strong> Toggle Role &amp; Permissions between Commercial
+              Authorities and Operational Roles to verify how selecting &lsquo;Purchase&rsquo; from the
+              Try or Purchase action launches the Security Redirection Modal and deterministically routes
+              the user upon clicking &lsquo;Continue&rsquo;: routing Commercial Authorities directly to
+              shop.trimble.com (or Account Setup if unprovisioned) and routing Operational Roles to
+              Request Purchase (#/request-purchase).
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <p class="visually-hidden" aria-live="polite">
+        Trimble ID: <span id="sim-tid">alex.morgan@acmearch.com</span>
+      </p>
     </header>
 
     <div id="app-root">
@@ -587,6 +599,14 @@
               <p class="account-selection-page-header__subtitle">
                 Please select an account for this purchase.
               </p>
+              <p class="account-selection-page-header__flyout-meta">
+                <span
+                  id="account-selector-role-badge"
+                  class="sandbox-role-badge badge-authorized"
+                  aria-live="polite"
+                  >Account Owner</span
+                >
+              </p>
             </header>
 
             <section
@@ -624,17 +644,17 @@
                 hidden
               ></div>
 
-              <div
-                class="account-grid account-card-grid"
-                id="account-grid"
-                role="radiogroup"
-                aria-labelledby="account-selection-panel-title"
-                aria-describedby="account-selection-panel-note"
+              <span id="account-selection-panel-note" class="visually-hidden"
+                >Select and confirm your account to continue.</span
               >
-                <span id="account-selection-panel-note" class="visually-hidden"
-                  >Select and confirm your account to continue.</span
-                >
-                <!-- Cards injected by JS -->
+              <div class="account-selector-flyout" id="account-selector-flyout">
+                <div
+                  class="account-grid account-card-grid"
+                  id="account-grid"
+                  role="radiogroup"
+                  aria-labelledby="account-selection-panel-title"
+                  aria-describedby="account-selection-panel-note"
+                ></div>
               </div>
 
               <div class="account-dock" id="account-selection-dock">
@@ -728,32 +748,6 @@
 
         <div class="checkout-page__body prototype-page-content">
           <div class="mxp-container mxp-container--checkout">
-            <aside
-              class="dev-tooltip"
-              role="note"
-              aria-labelledby="dev-note-checkout-title"
-              data-dev-tooltip
-            >
-              <div class="dev-annotation-note">
-                <div class="dev-tooltip__head">
-                  <span class="dev-tooltip__title" id="dev-note-checkout-title">Developer Note</span>
-                  <button
-                    type="button"
-                    class="dev-tooltip__dismiss"
-                    aria-label="Dismiss developer note"
-                    data-dismiss-dev-note
-                  >
-                    ×
-                  </button>
-                </div>
-                <p class="dev-tooltip__text">
-                  Developer Note (Checkout Flow): User routes directly here when selecting an account
-                  with an existing Direct-via-Web (DvW) e-commerce record and Authorized Buyer
-                  privileges. Account ID <strong id="checkout-dev-account-id">#894201</strong> and
-                  session cart context are bound to this transaction.
-                </p>
-              </div>
-            </aside>
             <header class="checkout-header">
               <h1 class="checkout-header__title">Checkout</h1>
               <p id="checkout-header-meta" class="checkout-header__meta">1 item | Subtotal $12.00</p>
@@ -852,7 +846,7 @@
                     </div>
                     <div class="checkout-summary-lines__row">
                       <dt>Promotions</dt>
-                      <dd>—</dd>
+                      <dd id="checkout-promo-line">—</dd>
                     </div>
                     <div class="checkout-summary-lines__row">
                       <dt>
@@ -989,32 +983,6 @@
 
         <div class="account-setup-page__body prototype-page-content">
           <div class="mxp-container mxp-container--setup">
-            <aside
-              class="dev-tooltip"
-              role="note"
-              aria-labelledby="dev-note-setup-title"
-              data-dev-tooltip
-            >
-              <div class="dev-annotation-note">
-                <div class="dev-tooltip__head">
-                  <span class="dev-tooltip__title" id="dev-note-setup-title">Developer Note</span>
-                  <button
-                    type="button"
-                    class="dev-tooltip__dismiss"
-                    aria-label="Dismiss developer note"
-                    data-dismiss-dev-note
-                  >
-                    ×
-                  </button>
-                </div>
-                <p class="dev-tooltip__text">
-                  Developer Note (Account Setup Flow): User routes here if their selected CDH account
-                  lacks an existing Direct-via-Web (DvW) e-commerce profile. Submitting Step 1
-                  advances to Step 2 (Address Doctor Verification API) and Step 3 (Currency) before
-                  transferring cart context into Checkout.
-                </p>
-              </div>
-            </aside>
             <header class="account-setup-header">
               <h1 class="account-setup-header__title">Account Setup</h1>
               <p class="account-setup-header__subtitle">
@@ -1238,27 +1206,6 @@
         </header>
 
         <div class="request-access-main prototype-page-content">
-          <aside
-            class="dev-tooltip"
-            role="note"
-            aria-labelledby="dev-note-request-title"
-            data-dev-tooltip
-          >
-            <div class="dev-annotation-note">
-              <div class="dev-tooltip__head">
-                <span class="dev-tooltip__title" id="dev-note-request-title">Developer Note</span>
-                <button
-                  type="button"
-                  class="dev-tooltip__dismiss"
-                  aria-label="Dismiss developer note"
-                  data-dismiss-dev-note
-                >
-                  ×
-                </button>
-              </div>
-              <p class="dev-tooltip__text" id="request-dev-note-body"></p>
-            </div>
-          </aside>
           <section class="request-access-hero">
             <div class="request-access-hero__inner">
               <h1 class="request-access-hero__title">Request account action or access</h1>
@@ -1477,10 +1424,10 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="security-modal-title"
-      aria-describedby="security-modal-body"
+      aria-describedby="sec-modal-desc-e"
       hidden
     >
-      <div class="modal__panel">
+      <div class="modal__panel security-modal-card">
         <div class="modal__head">
           <h2 id="security-modal-title" class="modal__title">
             Proceeding to Secure Trimble Commerce
@@ -1495,19 +1442,11 @@
           </button>
         </div>
         <div id="security-modal-body" class="modal__body">
-          <p id="modal-body-lead">
-            You are leaving SketchUp Extension Warehouse to complete your order on Trimble Commerce
-            (<span class="nowrap">shop.trimble.com</span>).
+          <p id="sec-modal-desc-e" class="modal__description">
+            You are leaving SketchUp Extension Warehouse to select an account on Trimble Commerce
+            (<span class="nowrap">shop.trimble.com</span>). To return to Extension Warehouse at any
+            time, use your browser's Back button or click Cancel.
           </p>
-          <div class="modal__verified-id" role="status" aria-live="polite">
-            <span class="modal__verified-id-label">Verified Trimble ID:</span>
-            <span
-              class="modal__verified-id-value"
-              id="modal-tid"
-              title="alex.morgan@acmearch.com"
-              >alex.morgan@acmearch.com</span
-            >
-          </div>
           <div
             id="security-modal-error-host"
             class="proto-error-host proto-error-host--modal"
@@ -1516,16 +1455,33 @@
             hidden
           ></div>
         </div>
-        <div class="modal__footer">
-          <button type="button" class="btn btn--secondary" id="btn-modal-cancel">
+        <div class="modal__footer modal-actions">
+          <button
+            type="button"
+            class="btn btn--secondary modus-btn-secondary modal-actions__cancel"
+            id="btn-modal-cancel"
+          >
             Cancel
           </button>
-          <button type="button" class="btn btn--primary" id="btn-modal-continue">
-            Continue to Account Selection
+          <button
+            type="button"
+            class="btn btn--primary"
+            id="btn-modal-continue"
+            data-action-target="route-account-selection"
+            aria-describedby="sec-modal-desc-e"
+          >
+            Continue
           </button>
         </div>
       </div>
     </div>
+
+    <aside class="dev-annotation-dock" aria-hidden="true" hidden>
+      <span class="dev-badge">DEV NOTE</span>
+      <span class="dev-text"
+        >See if the SketchUp Extension Warehouse team can add this proposed security modal.</span
+      >
+    </aside>
 
     <script src="app.js"></script>
   </body>

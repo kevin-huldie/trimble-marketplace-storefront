@@ -7,60 +7,264 @@
     C: "patricia.nguyen@enterprisedesign.com",
     D: "jamie.lee@designstudioc.com",
     E: "alex.morgan@acmearch.com",
-    F: "alex.morgan@acmearch.com",
   };
 
-  const SCENARIO_E_MODAL_ALERTS = {
-    "session-timeout": {
-      tone: "danger",
-      title: "Session expired",
-      message:
-        "Your Trimble ID session timed out before commerce handoff. Sign in again to continue to Secure Trimble Commerce.",
+  const SANDBOX_SCENARIO_STORAGE_KEY = "prototype-scenario";
+  const TRIMBLE_SANDBOX_STORAGE_KEY = "trimble_sandbox_state";
+  const TRIMBLE_SANDBOX_NOTES_VISIBLE_KEY = "trimble_sandbox_notes_visible";
+
+  const SANDBOX_DEV_DRAWER_DEFAULT = {
+    title: "STAGE 1: MVP SCOPE (SUEW DIRECT CART & CHECKOUT INTEGRATION)",
+    desc:
+      "Delivers the baseline transactional handoff between SketchUp Extension Warehouse (SUEW) and Trimble Marketplace Direct Cart & Checkout via Trimble ID (TID) identity and Customer Data Hub (CDH) entitlement telemetry.",
+    footerHtml:
+      "<strong>Evaluation Guide:</strong> Toggle Role &amp; Permissions between Commercial Authorities and Operational Roles to verify how selecting &lsquo;Purchase&rsquo; from the Try or Purchase action launches the Security Redirection Modal and deterministically routes the user upon clicking &lsquo;Continue&rsquo;: routing Commercial Authorities directly to shop.trimble.com (or Account Setup if unprovisioned) and routing Operational Roles to Request Purchase (#/request-purchase).",
+  };
+
+  const SANDBOX_DEV_DRAWER_BY_ROUTE = {
+    "/checkout": {
+      title: "STUB: CHECKOUT (shop.trimble.com)",
+      desc:
+        "Validates the Direct-via-Web checkout surface for Authorized Buyers with an existing DvW e-commerce record. Session cart context and the selected CDH organization should bind to billing, order summary, and checkout actions on this page.",
+      footerHtml:
+        "<strong>Evaluation Guide:</strong> Reach this stub via Security Modal Continue as a Commercial Authority with DvW Account State &lsquo;Account Exists&rsquo;, or by completing Account Selector with a checkout-ready buyer account. Confirm order line items, subtotal, and that checkout header meta reflects the prototype SKU price.",
     },
-    "sso-failure": {
-      tone: "warning",
-      title: "SSO redirect failed",
-      message:
-        "Enterprise federated SSO could not complete the redirect to Trimble Commerce. Retry sign-in or contact your IT administrator.",
+    "/account-setup": {
+      title: "STUB: ACCOUNT SETUP (Onboarding intercept)",
+      desc:
+        "Buyer organizations without a Direct-via-Web profile route here before checkout. Step 1 captures profile details; subsequent steps (Address Doctor verification and currency selection) precede transferring cart context into Checkout.",
+      footerHtml:
+        "<strong>Evaluation Guide:</strong> Route via Security Modal Continue when DvW Account State is &lsquo;Not Created&rsquo;, from Account Selector when setup is incomplete (Simulated Error), or when modal Continue targets Account Setup. Validate required fields, work-email format, and Step 1 enablement of Continue.",
     },
-    "currency-region": {
-      tone: "warning",
-      title: "Currency or region mismatch",
-      message:
-        "Your account entitlement does not match the storefront currency or region for this extension SKU. Choose another account or update billing region.",
-    },
-    "auth-block": {
-      tone: "danger",
-      title: "Critical transactional block",
-      message:
-        "Trimble Commerce blocked this handoff due to a critical authentication or transactional policy violation. Contact your administrator or Trimble support before retrying.",
+    "/request-purchase": {
+      title: "STUB: REQUEST PURCHASE (Delegated requisition)",
+      desc:
+        "Operational roles and non-buyer entitlements land on this requisition stub instead of shop.trimble.com. Users request administrator approval or add an individual account to purchase independently.",
+      footerHtml:
+        "<strong>Evaluation Guide:</strong> Set Role &amp; Permissions to License Admin or Product User, choose Purchase from Try or Purchase, and Continue through the security modal—or select a non-buyer row on Account Selector. Exercise Send request and Add individual account cards.",
     },
   };
 
-  const SCENARIO_F_ACCOUNT_ALERTS = {
-    "entitlement-timeout": {
-      tone: "danger",
-      title: "Unable to load accounts",
-      message:
-        "The entitlement service timed out while retrieving accounts for your Trimble ID. Refresh the page or try again in a few minutes.",
-    },
-    "zero-accounts": {
-      tone: "danger",
-      title: "No authorized accounts",
-      message:
-        "We could not find any commerce accounts you are permitted to use for this purchase. Request access from your Account Owner or create an individual account.",
-    },
-    "setup-incomplete": {
+  const DEFAULT_SANDBOX_STATE = {
+    ticket: "DXPBK-2012",
+    role: "ao",
+    isBuyer: true,
+    canPurchase: true,
+    purchaseType: "saas_subscription",
+    releaseStage: "stage_1_mvp",
+    surface: "efeff4",
+    accountScope: "single_account",
+    portfolioScope: "single_account",
+    dvwAccountState: "account_exists",
+    errorState: "none",
+  };
+
+  const BUYER_ERROR_OPTIONS = ["none", "err_account_setup_incomplete"];
+
+  const NON_BUYER_ERROR_OPTIONS = ["none"];
+
+  const REMOVED_ERROR_INJECTIONS = [
+    "err_session_timeout",
+    "err_sso_failure",
+    "err_currency_mismatch",
+    "err_auth_block",
+    "err_service_timeout",
+    "err_zero_accounts",
+    "err_downgrade",
+  ];
+
+  const ACCOUNT_SELECTOR_ERROR_INJECTIONS = ["err_account_setup_incomplete"];
+
+  const BUYER_ROLES = ["ao", "sao"];
+
+  const RELEASE_STAGE_LABELS = {
+    stage_1_mvp: "Stage 1: MVP",
+    stage_2_enhanced: "Stage 2: Enhanced",
+    stage_3_north_star: "Stage 3: North Star",
+  };
+
+  function getRoleMetadata(roleValue) {
+    switch (roleValue) {
+      case "ao":
+        return { label: "Account Owner", isBuyer: true, badgeClass: "badge-authorized" };
+      case "sao":
+        return {
+          label: "Secondary Account Owner",
+          isBuyer: true,
+          badgeClass: "badge-authorized",
+        };
+      case "admin":
+        return { label: "License Admin", isBuyer: false, badgeClass: "badge-operational" };
+      case "non-buyer":
+      default:
+        return { label: "Product User", isBuyer: false, badgeClass: "badge-operational" };
+    }
+  }
+
+  function getSandboxState() {
+    return { ...sandboxState };
+  }
+
+  function getEffectiveErrorState() {
+    if (sandboxState.errorState) {
+      return sandboxState.errorState;
+    }
+    if (sandboxState.errorInjection) {
+      return sandboxState.errorInjection;
+    }
+    return "none";
+  }
+
+  function syncSandboxRoleCommerceFields(roleValue) {
+    const meta = getRoleMetadata(roleValue);
+    sandboxState.role = roleValue;
+    sandboxState.isBuyer = meta.isBuyer;
+    sandboxState.canPurchase = meta.isBuyer;
+    return meta;
+  }
+
+  function buyerErrorSelectMarkup() {
+    return (
+      '<option value="none">None (Happy Path)</option>' +
+      '<optgroup label="Account Onboarding Errors">' +
+      '<option value="err_account_setup_incomplete">Account Setup Incomplete</option>' +
+      "</optgroup>"
+    );
+  }
+
+  function nonBuyerErrorSelectMarkup() {
+    return '<option value="none">None (Happy Path - Request Purchase)</option>';
+  }
+
+  function bindSandboxAccountStateControl() {
+    const accountSelect = document.getElementById("sb-account-state");
+    if (!accountSelect || accountSelect.tagName !== "SELECT") {
+      return;
+    }
+    if (accountSelect.dataset.bound === "true") {
+      return;
+    }
+    accountSelect.dataset.bound = "true";
+    accountSelect.addEventListener("change", (e) => {
+      saveSandboxState({ dvwAccountState: e.target.value });
+      applyDvwAccountStateCheckoutRouting();
+      window.dispatchEvent(
+        new CustomEvent("sandboxAccountStateChanged", {
+          detail: { accountState: e.target.value },
+        })
+      );
+      applySandboxStateToApp();
+    });
+  }
+
+  function bindSandboxErrorInjectionControl() {
+    const errorSelect = document.getElementById("sb-error-injection");
+    if (!errorSelect) {
+      return;
+    }
+    if (errorSelect.dataset.bound === "true") {
+      return;
+    }
+    errorSelect.dataset.bound = "true";
+    errorSelect.addEventListener("change", (e) => {
+      saveSandboxState({ errorState: e.target.value });
+      delete sandboxState.errorInjection;
+      state.accountSelectionFailureFocusKey = null;
+      applySandboxStateToApp();
+    });
+  }
+
+  function updateSecondaryControlsForRole(role) {
+    const isBuyer = BUYER_ROLES.indexOf(role) !== -1;
+    const accountStateContainer = document.getElementById("sandbox-group-account-state");
+    const errorSelect = document.getElementById("sb-error-injection");
+    const current = getSandboxState();
+    const priorError = getEffectiveErrorState();
+    const priorDvw =
+      current.dvwAccountState === "not_applicable"
+        ? "account_exists"
+        : current.dvwAccountState;
+
+    if (!isBuyer) {
+      if (accountStateContainer) {
+        accountStateContainer.innerHTML =
+          '<label for="sb-account-state">DvW Account State:</label>' +
+          '<input type="text" id="sb-account-state" class="sandbox-input-readonly" value="N/A (Non-Buyer)" readonly tabindex="-1" aria-readonly="true">';
+      }
+      if (errorSelect) {
+        errorSelect.dataset.bound = "";
+        errorSelect.innerHTML = nonBuyerErrorSelectMarkup();
+        errorSelect.value = "none";
+        errorSelect.disabled = true;
+        errorSelect.setAttribute("aria-disabled", "true");
+      }
+      saveSandboxState({
+        isBuyer: false,
+        dvwAccountState: "not_applicable",
+        errorState: "none",
+      });
+    } else {
+      if (accountStateContainer) {
+        accountStateContainer.innerHTML =
+          '<label for="sb-account-state">DvW Account State:</label>' +
+          '<select id="sb-account-state" class="sandbox-select">' +
+          '<option value="account_exists">Account Exists</option>' +
+          '<option value="not_created">Not Created</option>' +
+          "</select>";
+        const newSelect = document.getElementById("sb-account-state");
+        if (newSelect) {
+          newSelect.dataset.bound = "";
+          newSelect.value = priorDvw === "not_created" ? "not_created" : "account_exists";
+          bindSandboxAccountStateControl();
+        }
+      }
+      if (errorSelect) {
+        errorSelect.dataset.bound = "";
+        errorSelect.disabled = false;
+        errorSelect.removeAttribute("aria-disabled");
+        errorSelect.innerHTML = buyerErrorSelectMarkup();
+        errorSelect.value =
+          priorError !== "none" && BUYER_ERROR_OPTIONS.indexOf(priorError) !== -1
+            ? priorError
+            : "none";
+      }
+      saveSandboxState({
+        isBuyer: true,
+        dvwAccountState: priorDvw === "not_created" ? "not_created" : "account_exists",
+        errorState: errorSelect ? errorSelect.value : "none",
+      });
+    }
+    bindSandboxErrorInjectionControl();
+  }
+
+  function dispatchSandboxRoleChanged(roleValue) {
+    const meta = getRoleMetadata(roleValue);
+    window.dispatchEvent(
+      new CustomEvent("sandboxRoleChanged", {
+        detail: {
+          role: roleValue,
+          label: meta.label,
+          isBuyer: meta.isBuyer,
+          badgeClass: meta.badgeClass,
+        },
+      })
+    );
+  }
+
+  const SANDBOX_PROMO_DISPLAY = {
+    none: { line: "—", subtotal: "$12.00", total: "$12.00" },
+    promo20: { line: "—", subtotal: "$12.00", total: "$12.00" },
+    invalid: { line: "Invalid code", subtotal: "$12.00", total: "$12.00" },
+  };
+
+  let sandboxState = { ...DEFAULT_SANDBOX_STATE };
+
+  const SCENARIO_E_ACCOUNT_ALERTS = {
+    "scenario-e-incomplete": {
       tone: "warning",
       title: "Account setup incomplete",
       message:
         "One or more accounts require setup before checkout. Complete Account Setup for the selected organization to continue.",
-    },
-    "permission-downgrade": {
-      tone: "warning",
-      title: "Permissions changed during session",
-      message:
-        "Buyer authorization changed while you were signed in. Review updated account badges before continuing.",
     },
   };
 
@@ -120,12 +324,104 @@
 
   const SINGLE_ACCOUNT = ACCOUNTS_MULTI[0];
 
+  const CDH_ORG_TO_LEGACY_ID = {
+    org_acme_main: "894201",
+    org_acme_west: "771902",
+    org_studio_c: "663044",
+    org_civic_labs: "558812",
+  };
+
+  const MOCK_ACCOUNT_SCOPES = {
+    single_account: [
+      {
+        id: "org_acme_main",
+        name: "Acme Architecture Corp",
+        accountNumber: "ACC-89211",
+        role: "Account Owner",
+        isAuthorizedBuyer: true,
+        isDefault: true,
+      },
+    ],
+    multi_buyer_only: [
+      {
+        id: "org_acme_main",
+        name: "Acme Architecture Corp (HQ)",
+        accountNumber: "ACC-89211",
+        role: "Account Owner",
+        isAuthorizedBuyer: true,
+        isDefault: true,
+      },
+      {
+        id: "org_acme_west",
+        name: "Acme West Coast Studio",
+        accountNumber: "ACC-44102",
+        role: "Secondary Account Owner",
+        isAuthorizedBuyer: true,
+        isDefault: false,
+      },
+    ],
+    multi_mixed: [
+      {
+        id: "org_acme_main",
+        name: "Acme Architecture Corp (HQ)",
+        accountNumber: "ACC-89211",
+        role: "Account Owner",
+        isAuthorizedBuyer: true,
+        isDefault: true,
+      },
+      {
+        id: "org_studio_c",
+        name: "Studio C Consulting",
+        accountNumber: "ACC-10984",
+        role: "Product User",
+        isAuthorizedBuyer: false,
+        isDefault: false,
+      },
+      {
+        id: "org_civic_labs",
+        name: "Civic Infrastructure Labs",
+        accountNumber: "ACC-77319",
+        role: "License Admin",
+        isAuthorizedBuyer: false,
+        isDefault: false,
+      },
+    ],
+  };
+
+  function getAccountScope() {
+    return (
+      sandboxState.accountScope ||
+      sandboxState.portfolioScope ||
+      DEFAULT_SANDBOX_STATE.accountScope
+    );
+  }
+
+  function legacyAccountFromMock(mock) {
+    const legacyId = CDH_ORG_TO_LEGACY_ID[mock.id] || SINGLE_ACCOUNT.id;
+    const base = findAccount(legacyId) || SINGLE_ACCOUNT;
+    return {
+      id: base.id,
+      name: mock.name,
+      role: mock.role,
+      cdhId: base.cdhId,
+      buyerAuthorized: mock.isAuthorizedBuyer,
+      checkoutReady: mock.isAuthorizedBuyer && base.checkoutReady !== false,
+      accountNumber: mock.accountNumber,
+      mockOrgId: mock.id,
+    };
+  }
+
   const PRODUCT = {
     name: "DBS - Round edges corners 2",
     priceLabel: "$12.00",
     developer: "DBS",
     sku: "SUEW-DBS-REC2",
   };
+
+  const PURCHASE_TYPE_SUBSCRIPTION = "saas_subscription";
+  const PURCHASE_TYPE_FREE_TRIAL = "free_trial";
+
+  let purchaseTriggerClickHandler = null;
 
   const state = {
     purchaseMenuOpen: false,
@@ -135,21 +431,12 @@
     route: "/",
     selectedAccountId: null,
     modalOpen: false,
-    accountEntitlementLoaded: false,
     accountSelectionFailureFocusKey: null,
   };
 
   const els = {
     views: () => document.querySelectorAll(".view"),
-    scenarioRadios: () => document.querySelectorAll('input[name="scenario"]'),
-    scenarioSubstatePanel: () => document.getElementById("scenario-substate-panel"),
-    dvwStateWrap: () => document.getElementById("dvw-state-wrap"),
-    dvwStateRadios: () => document.querySelectorAll('input[name="dvw-state"]'),
-    dvwStateBRadios: () => document.querySelectorAll('input[name="dvw-state-b"]'),
-    dvwStateERadios: () => document.querySelectorAll('input[name="dvw-state-e"]'),
-    dvwStateFRadios: () => document.querySelectorAll('input[name="dvw-state-f"]'),
     simTid: () => document.getElementById("sim-tid"),
-    modalTid: () => document.getElementById("modal-tid"),
     tryPurchaseBtn: () => document.getElementById("btn-try-purchase"),
     purchaseMenu: () => document.getElementById("try-purchase-menu"),
     purchaseDropdown: () => document.getElementById("try-purchase-dropdown"),
@@ -162,11 +449,12 @@
     modalContinue: () => document.getElementById("btn-modal-continue"),
     modalCancel: () => document.getElementById("btn-modal-cancel"),
     modalClose: () => document.getElementById("btn-modal-close"),
-    modalBodyLead: () => document.getElementById("modal-body-lead"),
+    modalBodyLead: () => document.getElementById("sec-modal-desc-e"),
     accountGrid: () => document.getElementById("account-grid"),
     continueCheckout: () => document.getElementById("btn-continue-checkout"),
     cancelSuew: () => document.getElementById("link-cancel-suew"),
     requestContext: () => document.getElementById("request-context"),
+    devAnnotationDock: () => document.querySelector(".dev-annotation-dock"),
   };
 
   function getScenario() {
@@ -174,7 +462,14 @@
   }
 
   function getTid() {
-    return TID_BY_SCENARIO[getScenario()] || TID_BY_SCENARIO.A;
+    const role = sandboxState.role;
+    if (role === "admin") {
+      return TID_BY_SCENARIO.C;
+    }
+    if (role === "non-buyer") {
+      return TID_BY_SCENARIO.D;
+    }
+    return TID_BY_SCENARIO.A;
   }
 
   function getNonBuyerStubForScenario(scenario) {
@@ -215,18 +510,559 @@
   }
 
   function getScenarioBSubstate() {
-    const selected = document.querySelector('input[name="dvw-state-b"]:checked');
-    return selected ? selected.value : "full-matrix";
+    if (getAccountScope() === "multi_buyer_only") {
+      return "ao-sao-only";
+    }
+    return "full-matrix";
+  }
+
+  function isAccountSelectorErrorInjection(injection) {
+    const key = injection != null ? injection : getEffectiveErrorState();
+    return ACCOUNT_SELECTOR_ERROR_INJECTIONS.indexOf(key) !== -1;
   }
 
   function getScenarioESubstate() {
-    const selected = document.querySelector('input[name="dvw-state-e"]:checked');
-    return selected ? selected.value : "session-timeout";
+    return "scenario-e-incomplete";
   }
 
-  function getScenarioFSubstate() {
-    const selected = document.querySelector('input[name="dvw-state-f"]:checked');
-    return selected ? selected.value : "entitlement-timeout";
+  function deriveScenarioFromSandbox() {
+    if (isAccountSelectorErrorInjection()) {
+      return "E";
+    }
+    switch (sandboxState.role) {
+      case "sao":
+        return "B";
+      case "admin":
+        return "C";
+      case "non-buyer":
+        return "D";
+      case "ao":
+      default:
+        if (getAccountScope() === "single_account") {
+          return "A";
+        }
+        return "B";
+    }
+  }
+
+  function normalizeSandboxFeatureControls() {
+    const validPortfolio = ["single_account", "multi_buyer_only", "multi_mixed"];
+    if (sandboxState.portfolioScope && !sandboxState.accountScope) {
+      sandboxState.accountScope = sandboxState.portfolioScope;
+    }
+    if (validPortfolio.indexOf(sandboxState.accountScope) === -1) {
+      sandboxState.accountScope = DEFAULT_SANDBOX_STATE.accountScope;
+    }
+    sandboxState.portfolioScope = sandboxState.accountScope;
+    if (sandboxState.dvwAccountState === "account_not_created") {
+      sandboxState.dvwAccountState = "not_created";
+    }
+    if (
+      sandboxState.dvwAccountState !== "account_exists" &&
+      sandboxState.dvwAccountState !== "not_created"
+    ) {
+      sandboxState.dvwAccountState = DEFAULT_SANDBOX_STATE.dvwAccountState;
+    }
+    if (sandboxState.errorInjection && !sandboxState.errorState) {
+      sandboxState.errorState = sandboxState.errorInjection;
+    }
+    delete sandboxState.errorInjection;
+    if (sandboxState.errorState === "setup_incomplete") {
+      sandboxState.errorState = "err_account_setup_incomplete";
+    }
+    if (!sandboxState.errorState) {
+      sandboxState.errorState = "none";
+    }
+    if (REMOVED_ERROR_INJECTIONS.indexOf(sandboxState.errorState) !== -1) {
+      sandboxState.errorState = "none";
+    }
+    if (typeof sandboxState.isBuyer !== "boolean") {
+      sandboxState.isBuyer = BUYER_ROLES.indexOf(sandboxState.role) !== -1;
+    }
+    const allowedErrors = sandboxState.isBuyer ? BUYER_ERROR_OPTIONS : NON_BUYER_ERROR_OPTIONS;
+    if (allowedErrors.indexOf(sandboxState.errorState) === -1) {
+      sandboxState.errorState = "none";
+    }
+    sandboxState.canPurchase = sandboxState.isBuyer;
+  }
+
+  function loadSandboxState() {
+    sandboxState = { ...DEFAULT_SANDBOX_STATE };
+    try {
+      const raw = sessionStorage.getItem(TRIMBLE_SANDBOX_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        sandboxState = { ...DEFAULT_SANDBOX_STATE, ...parsed };
+      }
+    } catch (err) {
+      sandboxState = { ...DEFAULT_SANDBOX_STATE };
+    }
+    migrateLegacyScenarioIntoSandbox();
+    syncSandboxRoleCommerceFields(sandboxState.role);
+    normalizeSandboxPurchaseType();
+    normalizeReleaseStage();
+    normalizeSandboxFeatureControls();
+  }
+
+  function normalizeReleaseStage() {
+    sandboxState.releaseStage = DEFAULT_SANDBOX_STATE.releaseStage;
+  }
+
+  function getReleaseStageModalTier(stage) {
+    if (stage === "stage_3_north_star") {
+      return "advanced";
+    }
+    if (stage === "stage_2_enhanced") {
+      return "standard";
+    }
+    return "basic";
+  }
+
+  function getReleaseStageCartFlyoutCapability(stage) {
+    if (stage === "stage_3_north_star") {
+      return "full";
+    }
+    if (stage === "stage_2_enhanced") {
+      return "expanded";
+    }
+    return "core";
+  }
+
+  function applyReleaseStageBranches(stage) {
+    const label = RELEASE_STAGE_LABELS[stage] || stage;
+    const modalTier = getReleaseStageModalTier(stage);
+    const cartFlyoutCapability = getReleaseStageCartFlyoutCapability(stage);
+    const toolbar = document.getElementById("sandbox-toolbar");
+    const modal = document.getElementById("security-modal");
+    const checkoutView = document.getElementById("view-checkout");
+    if (toolbar) {
+      toolbar.dataset.releaseStage = stage;
+    }
+    if (modal) {
+      modal.dataset.prototypeModalTier = modalTier;
+    }
+    if (checkoutView) {
+      checkoutView.dataset.cartFlyoutCapability = cartFlyoutCapability;
+    }
+
+    console.info("[DXPBK-2012] Release stage branch", {
+      stage,
+      label,
+      modalTier,
+      cartFlyoutCapability,
+    });
+  }
+
+  function normalizeSandboxPurchaseType() {
+    sandboxState.purchaseType = PURCHASE_TYPE_SUBSCRIPTION;
+  }
+
+  function isFreeTrialPurchaseType() {
+    return sandboxState.purchaseType === PURCHASE_TYPE_FREE_TRIAL;
+  }
+
+  function getCommercePriceLabel() {
+    return isFreeTrialPurchaseType() ? "$0.00" : PRODUCT.priceLabel;
+  }
+
+  function migrateLegacyScenarioIntoSandbox() {
+    try {
+      const legacy = sessionStorage.getItem(SANDBOX_SCENARIO_STORAGE_KEY);
+      if (!legacy || sessionStorage.getItem(TRIMBLE_SANDBOX_STORAGE_KEY)) {
+        return;
+      }
+      const scenario = legacy === "F" ? "E" : legacy;
+      if (scenario === "E") {
+        sandboxState.errorState = "err_account_setup_incomplete";
+      } else if (scenario === "B") {
+        sandboxState.role = "sao";
+      } else if (scenario === "C") {
+        sandboxState.role = "admin";
+      } else if (scenario === "D") {
+        sandboxState.role = "non-buyer";
+      } else {
+        sandboxState.role = "ao";
+      }
+    } catch (err) {
+      /* ignore */
+    }
+  }
+
+  function saveSandboxState(updatedFields) {
+    if (updatedFields && typeof updatedFields === "object") {
+      Object.assign(sandboxState, updatedFields);
+    }
+    normalizeSandboxFeatureControls();
+    syncSandboxRoleCommerceFields(sandboxState.role);
+    try {
+      sessionStorage.setItem(TRIMBLE_SANDBOX_STORAGE_KEY, JSON.stringify(sandboxState));
+    } catch (err) {
+      /* ignore */
+    }
+    try {
+      sessionStorage.setItem(SANDBOX_SCENARIO_STORAGE_KEY, deriveScenarioFromSandbox());
+    } catch (err2) {
+      /* ignore */
+    }
+    window.dispatchEvent(
+      new CustomEvent("sandboxStateChanged", { detail: getSandboxState() })
+    );
+  }
+
+  function syncSandboxSelectsToState() {
+    const map = {
+      "sb-role": "role",
+      "sb-account-scope": "accountScope",
+      "sb-error-injection": "errorState",
+    };
+    Object.keys(map).forEach((id) => {
+      const el = document.getElementById(id);
+      if (el && sandboxState[map[id]] != null) {
+        el.value = sandboxState[map[id]];
+      }
+    });
+    const accountStateEl = document.getElementById("sb-account-state");
+    if (
+      accountStateEl &&
+      accountStateEl.tagName === "SELECT" &&
+      sandboxState.dvwAccountState !== "not_applicable"
+    ) {
+      accountStateEl.value =
+        sandboxState.dvwAccountState === "not_created" ? "not_created" : "account_exists";
+    }
+  }
+
+  function readSandboxSelectsIntoState() {
+    const map = {
+      "sb-role": "role",
+      "sb-account-scope": "accountScope",
+      "sb-error-injection": "errorState",
+    };
+    Object.keys(map).forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) {
+        return;
+      }
+      if (id === "sb-role") {
+        syncSandboxRoleCommerceFields(el.value);
+        return;
+      }
+      sandboxState[map[id]] = el.value;
+    });
+    const accountStateEl = document.getElementById("sb-account-state");
+    if (accountStateEl && accountStateEl.tagName === "SELECT") {
+      sandboxState.dvwAccountState = accountStateEl.value;
+    }
+  }
+
+  function syncSecurityModalSurface() {
+    const panel = document.querySelector("#security-modal .security-modal-card");
+    if (!panel) {
+      return;
+    }
+    const legacy = sandboxState.surface === "ffffff";
+    panel.classList.toggle("security-modal-card--legacy", legacy);
+  }
+
+  function syncAccountSelectorRoleBadge() {
+    const badge = document.getElementById("account-selector-role-badge");
+    if (!badge) {
+      return;
+    }
+    const meta = getRoleMetadata(sandboxState.role);
+    badge.textContent = meta.label;
+    badge.classList.remove("badge-authorized", "badge-operational");
+    badge.classList.add(meta.badgeClass);
+  }
+
+  function syncPromoDisplay() {
+    const line = document.getElementById("checkout-promo-line");
+    const subtotal = document.getElementById("checkout-subtotal");
+    const total = document.getElementById("checkout-total");
+
+    if (isFreeTrialPurchaseType()) {
+      if (line) {
+        line.textContent = "Evaluation — no charge";
+      }
+      if (subtotal) {
+        subtotal.textContent = "$0.00";
+      }
+      if (total) {
+        total.textContent = "$0.00";
+      }
+      return;
+    }
+
+    const promo = SANDBOX_PROMO_DISPLAY.promo20;
+    if (line) {
+      line.textContent = promo.line;
+    }
+    if (subtotal) {
+      subtotal.textContent = promo.subtotal;
+    }
+    if (total) {
+      total.textContent = promo.total;
+    }
+  }
+
+  function applySandboxStateToApp() {
+    state.scenario = deriveScenarioFromSandbox();
+    state.accountSelectionFailureFocusKey = null;
+    syncScenarioPermissionState();
+    syncTidDisplay();
+    syncSecurityModalSurface();
+    syncAccountSelectorRoleBadge();
+    syncPurchaseTypeUi();
+    syncPromoDisplay();
+    applyReleaseStageBranches(sandboxState.releaseStage);
+    applyDvwAccountStateCheckoutRouting();
+    updateSecurityModalContent();
+
+    if (state.route === "/account-selection") {
+      renderAccountGrid();
+      updateDockButton();
+      syncAccountSelectionErrorUi();
+    }
+    if (state.route === "/request-purchase" && isNonBuyerScenario()) {
+      syncRequestAccessPage({});
+    }
+    if (state.modalOpen) {
+      updateSecurityModalContent();
+    }
+    syncPrototypeChromeTop();
+  }
+
+  function applyDvwAccountStateCheckoutRouting() {
+    const toolbar = document.getElementById("sandbox-toolbar");
+    if (toolbar) {
+      toolbar.dataset.dvwAccountState = sandboxState.dvwAccountState;
+    }
+    if (state.modalOpen) {
+      syncModalContinueButton();
+      syncSecurityModalErrorAlert();
+    }
+  }
+
+  function activateFreeTrial() {
+    closePurchaseMenu();
+    state.route = "/trial-activation";
+    try {
+      window.history.pushState({ route: "/trial-activation" }, "", "./trial-activation");
+    } catch (err) {
+      /* file:// or restricted */
+    }
+    document.title = titleForRoute("/trial-activation");
+    showAppToast(
+      "Free trial activated for " +
+        getTid() +
+        ". Evaluation license provisioned (prototype stub)."
+    );
+    const trigger = els.tryPurchaseBtn();
+    if (trigger) {
+      trigger.focus();
+    }
+  }
+
+  function syncPurchaseTypeUi() {
+    syncPdpPriceDisplay();
+
+    const trigger = els.tryPurchaseBtn();
+    const menu = els.purchaseMenu();
+    const dropdown = els.purchaseDropdown();
+    if (!trigger) {
+      return;
+    }
+
+    closePurchaseMenu();
+    const chevron = trigger.querySelector(".split-dropdown__chevron");
+    const labelSpan = trigger.querySelector("span:not(.split-dropdown__chevron)");
+    const purchaseItem = els.menuPurchase();
+
+    if (isFreeTrialPurchaseType()) {
+      if (labelSpan) {
+        labelSpan.textContent = "Start Free Trial";
+      }
+      trigger.setAttribute("aria-haspopup", "false");
+      trigger.removeAttribute("aria-controls");
+      if (chevron) {
+        chevron.hidden = true;
+      }
+      if (menu) {
+        menu.hidden = true;
+      }
+      if (dropdown) {
+        dropdown.classList.add("split-dropdown--single-cta");
+      }
+      return;
+    }
+
+    if (labelSpan) {
+      labelSpan.textContent = "Try or Purchase";
+    }
+    trigger.setAttribute("aria-haspopup", "menu");
+    trigger.setAttribute("aria-controls", "try-purchase-menu");
+    if (chevron) {
+      chevron.hidden = false;
+    }
+    if (menu && !state.purchaseMenuOpen) {
+      menu.hidden = true;
+    }
+    if (purchaseItem) {
+      purchaseItem.textContent = "Purchase";
+    }
+    if (dropdown) {
+      dropdown.classList.remove("split-dropdown--single-cta");
+    }
+  }
+
+  function bindPurchaseTriggerBehavior() {
+    const trigger = els.tryPurchaseBtn();
+    if (!trigger) {
+      return;
+    }
+    if (purchaseTriggerClickHandler) {
+      trigger.removeEventListener("click", purchaseTriggerClickHandler);
+    }
+    purchaseTriggerClickHandler = () => {
+      if (isFreeTrialPurchaseType()) {
+        activateFreeTrial();
+        return;
+      }
+      togglePurchaseMenu();
+    };
+    trigger.addEventListener("click", purchaseTriggerClickHandler);
+  }
+
+  function resolveRouteFromHash() {
+    const hash = window.location.hash || "";
+    if (!hash.startsWith("#/")) {
+      return null;
+    }
+    const path = hash.slice(1).split("?")[0];
+    return path || "/";
+  }
+
+  function syncSandboxDevDrawerForRoute(path) {
+    const routeKey = path || "/";
+    const copy =
+      SANDBOX_DEV_DRAWER_BY_ROUTE[routeKey] || SANDBOX_DEV_DRAWER_DEFAULT;
+    const titleEl = document.getElementById("sb-dev-note-title");
+    const descEl = document.querySelector("#sb-dev-drawer .sandbox-dev-desc");
+    const footerEl = document.querySelector(
+      "#sb-dev-drawer .sandbox-dev-footer-text"
+    );
+    if (titleEl) {
+      titleEl.textContent = copy.title;
+    }
+    if (descEl) {
+      descEl.textContent = copy.desc;
+    }
+    if (footerEl) {
+      footerEl.innerHTML = copy.footerHtml;
+    }
+  }
+
+  function setSandboxDevNotesVisible(visible) {
+    const panel = document.getElementById("sb-notes-panel");
+    const toggle = document.getElementById("sb-notes-toggle-btn");
+    if (!panel || !toggle) {
+      return;
+    }
+    const expanded = Boolean(visible);
+    panel.classList.toggle("is-hidden", !expanded);
+    panel.setAttribute("aria-hidden", expanded ? "false" : "true");
+    toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    toggle.textContent = expanded ? "Hide Dev Notes" : "Show Dev Notes";
+    try {
+      sessionStorage.setItem(TRIMBLE_SANDBOX_NOTES_VISIBLE_KEY, expanded ? "true" : "false");
+    } catch (err) {
+      /* ignore */
+    }
+    syncPrototypeChromeTop();
+  }
+
+  function initSandboxDevNotesDrawer() {
+    const toggle = document.getElementById("sb-notes-toggle-btn");
+    if (!toggle || toggle.dataset.bound === "true") {
+      return;
+    }
+    toggle.dataset.bound = "true";
+
+    let visible = false;
+    try {
+      visible = sessionStorage.getItem(TRIMBLE_SANDBOX_NOTES_VISIBLE_KEY) === "true";
+    } catch (err) {
+      visible = false;
+    }
+    setSandboxDevNotesVisible(visible);
+
+    toggle.addEventListener("click", () => {
+      const panel = document.getElementById("sb-notes-panel");
+      const isHidden = panel && panel.classList.contains("is-hidden");
+      setSandboxDevNotesVisible(isHidden);
+    });
+  }
+
+  function initSandboxToolbar() {
+    loadSandboxState();
+
+    const roleSelect = document.getElementById("sb-role");
+    if (roleSelect) {
+      roleSelect.value = sandboxState.role;
+    }
+    const scopeSelect = document.getElementById("sb-account-scope");
+    if (scopeSelect) {
+      scopeSelect.value = getAccountScope();
+    }
+
+    updateSecondaryControlsForRole(sandboxState.role);
+    const errorSelect = document.getElementById("sb-error-injection");
+    if (errorSelect) {
+      errorSelect.value = getEffectiveErrorState();
+    }
+
+    saveSandboxState();
+    applySandboxStateToApp();
+    bindPurchaseTriggerBehavior();
+
+    if (roleSelect) {
+      roleSelect.addEventListener("change", (e) => {
+        updateSecondaryControlsForRole(e.target.value);
+        syncAccountSelectorRoleBadge();
+        dispatchSandboxRoleChanged(e.target.value);
+        saveSandboxState({ role: e.target.value });
+        applySandboxStateToApp();
+      });
+    }
+
+    if (scopeSelect) {
+      scopeSelect.addEventListener("change", (e) => {
+        const newScope = e.target.value;
+        saveSandboxState({ accountScope: newScope, portfolioScope: newScope });
+        state.selectedAccountId = null;
+        window.dispatchEvent(
+          new CustomEvent("sandboxAccountSelectorScopeChanged", {
+            detail: {
+              accountSelectorScope: newScope,
+              accountSelectorAccounts: MOCK_ACCOUNT_SCOPES[newScope],
+            },
+          })
+        );
+        renderAccountSelectorCards(MOCK_ACCOUNT_SCOPES[newScope]);
+        applySandboxStateToApp();
+      });
+    }
+
+    const toggleBtn = document.getElementById("sb-toggle-btn");
+    const subRow = document.getElementById("sb-sub-row");
+    if (toggleBtn && subRow) {
+      toggleBtn.addEventListener("click", () => {
+        const collapsed = subRow.classList.toggle("is-collapsed");
+        toggleBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        toggleBtn.textContent = collapsed ? "+" : "−";
+        syncPrototypeChromeTop();
+      });
+    }
   }
 
   function cloneAccount(account) {
@@ -253,43 +1089,134 @@
     });
   }
 
-  function accountsForSelectionPage() {
-    const scenario = getScenario();
-    if (scenario === "B") {
-      if (getScenarioBSubstate() === "ao-sao-only") {
-        return applyScenarioBCheckoutAuthority(
-          ACCOUNTS_MULTI.filter((account) => account.buyerAuthorized)
+  function accountsForPortfolioBase() {
+    const scope = getAccountScope();
+    const mocks = MOCK_ACCOUNT_SCOPES[scope] || MOCK_ACCOUNT_SCOPES.single_account;
+    return mocks.map((mock) => {
+      const account = legacyAccountFromMock(mock);
+      return cloneAccount(account);
+    });
+  }
+
+  function renderAccountSelectorCards(accounts) {
+    const flyout = document.querySelector(".account-selector-flyout");
+    if (!flyout) {
+      return;
+    }
+
+    const scope = getAccountScope();
+    const isSingle = scope === "single_account";
+    const mockList = accounts || MOCK_ACCOUNT_SCOPES[scope] || MOCK_ACCOUNT_SCOPES.single_account;
+
+    flyout.innerHTML = "";
+    const grid = document.createElement("div");
+    grid.className = "account-grid account-card-grid";
+    grid.id = "account-grid";
+    grid.setAttribute(
+      "role",
+      isSingle ? "list" : "radiogroup"
+    );
+    grid.setAttribute("aria-labelledby", "account-selection-panel-title");
+    grid.setAttribute("aria-describedby", "account-selection-panel-note");
+
+    mockList.forEach((mock) => {
+      const legacyId = CDH_ORG_TO_LEGACY_ID[mock.id] || SINGLE_ACCOUNT.id;
+      const account = legacyAccountFromMock(mock);
+      const selected = state.selectedAccountId === legacyId;
+      const card = document.createElement("article");
+      card.className = "account-card" + (selected ? " account-card--selected" : "");
+      card.setAttribute("data-account-id", legacyId);
+      card.setAttribute("data-cdh-org-id", mock.id);
+
+      let badgesHtml = "";
+      if (mock.isAuthorizedBuyer) {
+        badgesHtml =
+          '<span class="badge badge--authorized-buyer modus-badge-success">Authorized Buyer</span>';
+      } else {
+        badgesHtml =
+          '<span class="badge badge--non-buyer account-selector-badge-neutral">Non-Purchasing Account</span>';
+      }
+
+      let actionHtml = "";
+      if (isSingle) {
+        if (mock.isDefault) {
+          state.selectedAccountId = legacyId;
+        }
+        actionHtml =
+          '<p class="account-card__active-label">Active organization for this session</p>';
+      } else if (!mock.isAuthorizedBuyer) {
+        actionHtml =
+          '<p class="account-card__request-tag">Non-Purchasing Account — Request Only</p>' +
+          '<button type="button" class="btn btn--card account-card__select btn--account-select-outline" disabled aria-disabled="true">Select Account</button>';
+      } else {
+        actionHtml =
+          '<button type="button" class="btn btn--card account-card__select ' +
+          (selected ? "btn--primary" : "btn--account-select-outline") +
+          '" aria-checked="' +
+          selected +
+          '" role="radio">' +
+          (selected ? "✓ Account Selected" : "Select Account") +
+          "</button>";
+      }
+
+      card.innerHTML =
+        '<div class="account-card__body">' +
+        '<h2 class="account-card__name">' +
+        escapeHtml(mock.name) +
+        "</h2>" +
+        '<p class="account-card__meta">' +
+        escapeHtml(mock.role) +
+        "</p>" +
+        '<p class="account-card__account-number">' +
+        escapeHtml(mock.accountNumber) +
+        "</p>" +
+        '<div class="account-card__badges">' +
+        badgesHtml +
+        "</div>" +
+        actionHtml +
+        "</div>";
+
+      if (!isSingle && mock.isAuthorizedBuyer) {
+        const btn = card.querySelector(".account-card__select");
+        const badge = accountBadgeMeta(account);
+        btn.setAttribute(
+          "aria-label",
+          accountSelectAriaLabel(account, badge, selected)
         );
-      }
-      return applyScenarioBCheckoutAuthority(ACCOUNTS_MULTI);
-    }
-    if (scenario === "F") {
-      const sub = getScenarioFSubstate();
-      if (sub === "zero-accounts") {
-        return [];
-      }
-      if (sub === "setup-incomplete") {
-        return ACCOUNTS_MULTI.map((account) => {
-          const copy = cloneAccount(account);
-          if (copy.buyerAuthorized) {
-            copy.checkoutReady = false;
+        btn.addEventListener("click", () => selectAccount(legacyId));
+        btn.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            selectAccount(legacyId);
           }
-          return copy;
         });
       }
-      if (sub === "permission-downgrade") {
-        return ACCOUNTS_MULTI.map((account) => {
-          const copy = cloneAccount(account);
-          if (copy.id === "894201") {
-            copy.buyerAuthorized = false;
-            copy.checkoutReady = false;
-          }
-          return copy;
-        });
-      }
-      return ACCOUNTS_MULTI.map(cloneAccount);
+
+      grid.appendChild(card);
+    });
+
+    flyout.appendChild(grid);
+    updateDockButton();
+  }
+
+  function accountsForSelectionPage() {
+    let accounts = applyScenarioBCheckoutAuthority(accountsForPortfolioBase());
+
+    if (getScenario() !== "E") {
+      return accounts;
     }
-    return ACCOUNTS_MULTI;
+
+    const sub = getScenarioESubstate();
+    if (sub === "scenario-e-incomplete") {
+      return accounts.map((account) => {
+        const copy = cloneAccount(account);
+        if (copy.buyerAuthorized) {
+          copy.checkoutReady = false;
+        }
+        return copy;
+      });
+    }
+    return accounts;
   }
 
   function renderProtoAlertMarkup(alertDef) {
@@ -316,120 +1243,10 @@
     if (!host) {
       return;
     }
-    if (getScenario() !== "E") {
-      host.hidden = true;
-      host.innerHTML = "";
-      if (continueBtn) {
-        continueBtn.disabled = false;
-      }
-      return;
-    }
-    const sub = getScenarioESubstate();
-    const alertDef = SCENARIO_E_MODAL_ALERTS[sub];
-    if (!alertDef) {
-      host.hidden = true;
-      host.innerHTML = "";
-      return;
-    }
-    host.innerHTML = renderProtoAlertMarkup(alertDef);
-    host.hidden = false;
+    host.hidden = true;
+    host.innerHTML = "";
     if (continueBtn) {
-      continueBtn.disabled =
-        sub === "session-timeout" || sub === "auth-block";
-    }
-  }
-
-  function isAccountEntitlementFailureActive() {
-    return (
-      getScenario() === "F" &&
-      getScenarioFSubstate() === "entitlement-timeout" &&
-      !state.accountEntitlementLoaded
-    );
-  }
-
-  function renderAccountEntitlementServiceError(shouldFocusHeading) {
-    const serviceError = document.getElementById("account-selection-service-error");
-    if (!serviceError) {
-      return;
-    }
-    serviceError.innerHTML =
-      '<div class="account-selection-service-error__inner">' +
-      '<div class="account-selection-service-error__main">' +
-      '<div class="account-selection-service-error__icon" aria-hidden="true">' +
-      '<svg width="24" height="24" viewBox="0 0 24 24" focusable="false" class="account-selection-service-error__icon-svg">' +
-      '<path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>' +
-      "</svg></div>" +
-      '<div class="account-selection-service-error__copy">' +
-      '<h2 class="account-selection-service-error__heading" id="account-selection-failure-heading" tabindex="-1">' +
-      "Unable to load your available accounts" +
-      "</h2>" +
-      '<p class="account-selection-service-error__microcopy">' +
-      "We experienced a temporary connection issue while retrieving your corporate account profiles from the Customer Data Hub. Your shopping cart items are safely saved." +
-      "</p>" +
-      "</div></div>" +
-      '<div class="account-selection-service-error__actions">' +
-      '<button type="button" class="btn btn--primary account-selection-service-error__retry" id="btn-retry-accounts">' +
-      "Retry Loading Accounts" +
-      "</button>" +
-      '<a href="#" class="account-selection-service-error__support" id="link-trimble-support">Contact Support</a>' +
-      "</div></div>";
-    serviceError.setAttribute("role", "status");
-    serviceError.setAttribute("aria-live", "polite");
-    serviceError.hidden = false;
-
-    if (shouldFocusHeading) {
-      window.requestAnimationFrame(() => {
-        const heading = document.getElementById("account-selection-failure-heading");
-        if (heading) {
-          heading.focus();
-        }
-      });
-    }
-  }
-
-  function renderAccountZeroAccountsEmptyState(shouldFocusHeading) {
-    const emptyHost = document.getElementById("account-selection-empty-host");
-    if (!emptyHost) {
-      return;
-    }
-    emptyHost.innerHTML =
-      '<h2 class="account-selection-empty__heading" id="account-selection-zero-heading" tabindex="-1">' +
-      "No authorized accounts" +
-      "</h2>" +
-      '<p class="account-selection-empty__message">' +
-      "We could not find any commerce accounts you are permitted to use for this purchase. Request access from your Account Owner or create an individual account." +
-      "</p>" +
-      '<div class="account-selection-empty__actions">' +
-      '<button type="button" class="btn btn--primary" id="btn-zero-setup-account">' +
-      "Set Up New Account" +
-      "</button>" +
-      '<a href="#" class="checkout-link account-selection-empty__request" id="link-zero-request-access">' +
-      "Request Access" +
-      "</a>" +
-      "</div>";
-
-    if (shouldFocusHeading) {
-      window.requestAnimationFrame(() => {
-        const heading = document.getElementById("account-selection-zero-heading");
-        if (heading) {
-          heading.focus();
-        }
-      });
-    }
-  }
-
-  function onRetryAccountEntitlementLoad() {
-    state.accountEntitlementLoaded = true;
-    state.selectedAccountId = null;
-    state.accountSelectionFailureFocusKey = null;
-    if (state.route === "/account-selection") {
-      renderAccountGrid();
-      updateDockButton();
-      syncAccountSelectionErrorUi();
-      const dockBtn = els.continueCheckout();
-      if (dockBtn) {
-        dockBtn.focus();
-      }
+      continueBtn.disabled = false;
     }
   }
 
@@ -456,86 +1273,25 @@
       dock.classList.remove("account-dock--hidden");
     }
 
-    if (getScenario() !== "F") {
-      state.accountEntitlementLoaded = false;
+    if (getScenario() !== "E") {
       state.accountSelectionFailureFocusKey = null;
-      return;
-    }
-
-    const sub = getScenarioFSubstate();
-    if (sub !== "entitlement-timeout") {
-      state.accountEntitlementLoaded = false;
-    }
-
-    if (sub === "entitlement-timeout" && !state.accountEntitlementLoaded) {
-      grid.classList.add("account-grid--hidden");
-      if (dock) {
-        dock.classList.add("account-dock--hidden");
-      }
-      const focusKey = "entitlement-timeout";
-      const shouldFocus = state.accountSelectionFailureFocusKey !== focusKey;
-      if (shouldFocus) {
-        state.accountSelectionFailureFocusKey = focusKey;
-      }
-      renderAccountEntitlementServiceError(shouldFocus);
-      return;
-    }
-
-    if (sub === "zero-accounts") {
-      grid.classList.add("account-grid--hidden");
-      if (dock) {
-        dock.classList.add("account-dock--hidden");
-      }
-      const focusKey = "zero-accounts";
-      const shouldFocus = state.accountSelectionFailureFocusKey !== focusKey;
-      if (shouldFocus) {
-        state.accountSelectionFailureFocusKey = focusKey;
-      }
-      renderAccountZeroAccountsEmptyState(shouldFocus);
-      emptyHost.hidden = false;
       return;
     }
 
     state.accountSelectionFailureFocusKey = null;
 
-    const alertDef = SCENARIO_F_ACCOUNT_ALERTS[sub];
+    const sub = getScenarioESubstate();
+    const alertDef = SCENARIO_E_ACCOUNT_ALERTS[sub];
     if (!alertDef) {
+      return;
+    }
+
+    if (getEffectiveErrorState() !== "err_account_setup_incomplete") {
       return;
     }
 
     errorHost.innerHTML = renderProtoAlertMarkup(alertDef);
     errorHost.hidden = false;
-  }
-
-  function onScenarioBSubstateChange() {
-    const visibleIds = new Set(accountsForSelectionPage().map((account) => account.id));
-    if (state.selectedAccountId && !visibleIds.has(state.selectedAccountId)) {
-      state.selectedAccountId = null;
-    }
-    if (state.route === "/account-selection") {
-      renderAccountGrid();
-      updateDockButton();
-    }
-    syncPrototypeChromeTop();
-  }
-
-  function onScenarioESubstateChange() {
-    updateSecurityModalContent();
-    syncPrototypeChromeTop();
-  }
-
-  function onScenarioFSubstateChange() {
-    state.accountEntitlementLoaded = false;
-    state.accountSelectionFailureFocusKey = null;
-    const visibleIds = new Set(accountsForSelectionPage().map((account) => account.id));
-    if (state.selectedAccountId && !visibleIds.has(state.selectedAccountId)) {
-      state.selectedAccountId = null;
-    }
-    if (state.route === "/account-selection") {
-      renderAccountGrid();
-      updateDockButton();
-    }
-    syncPrototypeChromeTop();
   }
 
   function initialsFromTid(tid) {
@@ -550,11 +1306,6 @@
   function syncTidDisplay() {
     const tid = getTid();
     els.simTid().textContent = tid;
-    const modalTid = els.modalTid();
-    if (modalTid) {
-      modalTid.textContent = tid;
-      modalTid.setAttribute("title", tid);
-    }
     const initials = initialsFromTid(tid);
     const avatar = els.suewAvatar();
     if (avatar) {
@@ -584,7 +1335,7 @@
 
   function syncCheckoutPage(context) {
     const account = context.account || findAccount(state.selectedAccountId) || SINGLE_ACCOUNT;
-    const price = PRODUCT.priceLabel;
+    const price = getCommercePriceLabel();
 
     const cdhEl = document.getElementById("checkout-dev-account-id");
     if (cdhEl) {
@@ -597,12 +1348,13 @@
     }
 
     const priceText = price;
-    ["checkout-subtotal", "checkout-total", "checkout-cart-unit-price"].forEach((id) => {
+    ["checkout-cart-unit-price"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) {
-        el.textContent = id === "checkout-cart-unit-price" ? priceText + " USD per user" : priceText;
+        el.textContent = priceText + " USD per user";
       }
     });
+    syncPromoDisplay();
 
     const productName = document.getElementById("checkout-cart-product-name");
     if (productName) {
@@ -705,20 +1457,6 @@
       context.permission ||
       (stub ? stub.permission : account && !account.buyerAuthorized ? "NON_BUYER" : state.permission);
 
-    const devNote = document.getElementById("request-dev-note-body");
-    if (devNote) {
-      const roleLabel = role || "Non-Buyer";
-      devNote.textContent =
-        "Developer Note (Non-Buyer / " +
-        roleLabel +
-        " Flow): Scenario C/D or account-selection Non-Buyer routes land on Stub 3 (Request Purchase). Permission state: " +
-        permission +
-        ". Clicking 'SEND REQUEST' dispatches an asynchronous approval notification to the designated Account Owner inside the Trimble Admin Console carrying the user's Trimble ID (" +
-        tid +
-        "), role (" +
-        roleLabel +
-        "), and SUEW SKU payload.";
-    }
     const aoEl = document.getElementById("request-ao-email");
     if (aoEl) {
       aoEl.textContent = ACCOUNT_OWNER_NOTIFY_EMAIL;
@@ -816,28 +1554,6 @@
     });
   }
 
-  function bindAccountSelectionServiceErrorHost() {
-    const host = document.getElementById("account-selection-service-error");
-    if (!host || host.dataset.actionsBound) {
-      return;
-    }
-    host.dataset.actionsBound = "true";
-    host.addEventListener("click", (e) => {
-      const target = e.target;
-      if (!(target instanceof Element)) {
-        return;
-      }
-      if (target.id === "btn-retry-accounts") {
-        e.preventDefault();
-        onRetryAccountEntitlementLoad();
-      }
-      if (target.id === "link-trimble-support") {
-        e.preventDefault();
-        showAppToast("Prototype: Contact Trimble Support — support portal stub.");
-      }
-    });
-  }
-
   function initCheckoutPage() {
     const orderReviewBtn = document.getElementById("btn-checkout-order-review");
     if (!orderReviewBtn || orderReviewBtn.dataset.bound) {
@@ -909,6 +1625,7 @@
     }
 
     document.title = titleForRoute(path);
+    syncSandboxDevDrawerForRoute(path);
   }
 
   function titleForRoute(path) {
@@ -918,6 +1635,7 @@
       "/checkout": "Checkout — Trimble",
       "/account-setup": "Account Setup — Trimble",
       "/request-purchase": "Request account action or access — Trimble",
+      "/trial-activation": "Free Trial Activation — Trimble",
     };
     return map[path] || "Trimble Commerce";
   }
@@ -984,75 +1702,66 @@
   }
 
   function isDvwAccountExists() {
-    if (getScenario() !== "A") {
-      return true;
+    if (!sandboxState.isBuyer || sandboxState.dvwAccountState === "not_applicable") {
+      return false;
     }
-    const selected = document.querySelector('input[name="dvw-state"]:checked');
-    return !selected || selected.value === "exists";
+    return sandboxState.dvwAccountState === "account_exists";
   }
+
+  const MODAL_RETURN_TO_SUEW_SUFFIX =
+    " To return to Extension Warehouse at any time, use your browser's Back button or click Cancel.";
 
   function modalBodyLeadHtml() {
     const scenario = getScenario();
     const shop = '<span class="nowrap">shop.trimble.com</span>';
-    if (scenario === "B") {
+    if (scenario === "B" || scenario === "E") {
       return (
         "You are leaving SketchUp Extension Warehouse to select an account on Trimble Commerce (" +
         shop +
-        ")."
+        ")." +
+        MODAL_RETURN_TO_SUEW_SUFFIX
       );
     }
     if (scenario === "C" || scenario === "D") {
       return (
         "You are leaving SketchUp Extension Warehouse to submit a purchase request on Trimble Commerce (" +
         shop +
-        ")."
-      );
-    }
-    if (scenario === "E") {
-      return (
-        "Security handoff error prototype — review the alert below before continuing to Trimble Commerce (" +
-        shop +
-        ")."
-      );
-    }
-    if (scenario === "F") {
-      return (
-        "You are leaving SketchUp Extension Warehouse to select an account on Trimble Commerce (" +
-        shop +
-        "). Account selector error states apply on the next page."
+        ")." +
+        MODAL_RETURN_TO_SUEW_SUFFIX
       );
     }
     return (
       "You are leaving SketchUp Extension Warehouse to complete your order on Trimble Commerce (" +
       shop +
-      ")."
+      ")." +
+      MODAL_RETURN_TO_SUEW_SUFFIX
     );
   }
 
-  function modalContinueLabel() {
+  function getModalContinueActionTarget() {
+    if (getEffectiveErrorState() === "err_account_setup_incomplete") {
+      return "route-account-setup";
+    }
     const scenario = getScenario();
     if (scenario === "A") {
-      return isDvwAccountExists()
-        ? "Continue to Checkout"
-        : "Continue to Account Setup";
+      return isDvwAccountExists() ? "route-checkout" : "route-account-setup";
+    }
+    if (scenario === "B" || scenario === "E") {
+      return "route-account-selection";
     }
     if (scenario === "C" || scenario === "D") {
-      return "Continue to Request Page";
+      return "route-purchase-request";
     }
-    if (scenario === "E") {
-      const eSub = getScenarioESubstate();
-      if (eSub === "session-timeout") {
-        return "Sign In Again";
-      }
-      if (eSub === "auth-block") {
-        return "Return to Extension Warehouse";
-      }
-      return "Continue to Account Selection";
+    return "route-account-selection";
+  }
+
+  function syncModalContinueButton() {
+    const continueBtn = els.modalContinue();
+    if (!continueBtn) {
+      return;
     }
-    if (scenario === "F") {
-      return "Continue to Account Selection";
-    }
-    return "Continue to Account Selection";
+    continueBtn.setAttribute("data-action-target", getModalContinueActionTarget());
+    continueBtn.setAttribute("aria-describedby", "sec-modal-desc-e");
   }
 
   function updateSecurityModalContent() {
@@ -1060,7 +1769,7 @@
     if (lead) {
       lead.innerHTML = modalBodyLeadHtml();
     }
-    els.modalContinue().textContent = modalContinueLabel();
+    syncModalContinueButton();
     syncTidDisplay();
     syncSecurityModalErrorAlert();
   }
@@ -1068,6 +1777,15 @@
   function handlePurchaseFromPdp() {
     closePurchaseMenu();
     openSecurityModal();
+  }
+
+  function syncSecurityModalDevAnnotation(isVisible) {
+    const dock = els.devAnnotationDock();
+    if (!dock) {
+      return;
+    }
+    dock.hidden = !isVisible;
+    dock.setAttribute("aria-hidden", "true");
   }
 
   function openSecurityModal() {
@@ -1079,6 +1797,7 @@
     els.modal().hidden = false;
     els.backdrop().setAttribute("aria-hidden", "false");
     els.modal().setAttribute("aria-hidden", "false");
+    syncSecurityModalDevAnnotation(true);
 
     els.modalContinue().focus();
     document.body.style.overflow = "hidden";
@@ -1091,6 +1810,7 @@
     els.modal().hidden = true;
     els.backdrop().setAttribute("aria-hidden", "true");
     els.modal().setAttribute("aria-hidden", "true");
+    syncSecurityModalDevAnnotation(false);
     document.body.style.overflow = "";
 
     if (restoreFocus) {
@@ -1102,33 +1822,31 @@
   }
 
   function evaluateContinueFromModal() {
-    const scenario = getScenario();
-
-    const eSub = getScenarioESubstate();
-    if (scenario === "E" && (eSub === "session-timeout" || eSub === "auth-block")) {
-      syncSecurityModalErrorAlert();
-      return;
-    }
+    const continueBtn = els.modalContinue();
+    const actionTarget =
+      (continueBtn && continueBtn.getAttribute("data-action-target")) ||
+      getModalContinueActionTarget();
 
     closeSecurityModal({ restoreFocus: false });
 
-    if (scenario === "A") {
-      if (isDvwAccountExists()) {
-        routeTo("/checkout", { context: { account: SINGLE_ACCOUNT }, resetSelection: true });
-      } else {
-        routeTo("/account-setup", { resetSelection: true });
-      }
+    if (actionTarget === "route-checkout") {
+      routeTo("/checkout", { context: { account: SINGLE_ACCOUNT }, resetSelection: true });
       return;
     }
 
-    if (scenario === "B" || scenario === "E" || scenario === "F") {
-      state.accountEntitlementLoaded = false;
+    if (actionTarget === "route-account-setup") {
+      routeTo("/account-setup", { resetSelection: true });
+      return;
+    }
+
+    if (actionTarget === "route-account-selection") {
       state.accountSelectionFailureFocusKey = null;
       routeTo("/account-selection", { resetSelection: true });
       return;
     }
 
-    if (scenario === "C" || scenario === "D") {
+    if (actionTarget === "route-purchase-request") {
+      const scenario = getScenario();
       const stub = getNonBuyerStubForScenario(scenario);
       routeTo("/request-purchase", {
         resetSelection: true,
@@ -1143,60 +1861,25 @@
   }
 
   function renderAccountGrid() {
-    const grid = els.accountGrid();
-    if (isAccountEntitlementFailureActive()) {
-      grid.innerHTML = "";
-      syncAccountSelectionErrorUi();
-      return;
+    const scope = getAccountScope();
+    let mocks = MOCK_ACCOUNT_SCOPES[scope] || MOCK_ACCOUNT_SCOPES.single_account;
+
+    if (getScenario() === "E") {
+      const legacyAccounts = accountsForSelectionPage();
+      mocks = mocks.map((mock) => {
+        const legacyId = CDH_ORG_TO_LEGACY_ID[mock.id];
+        const adjusted = legacyAccounts.find((a) => a.id === legacyId);
+        if (!adjusted) {
+          return mock;
+        }
+        return {
+          ...mock,
+          isAuthorizedBuyer: adjusted.buyerAuthorized,
+        };
+      });
     }
 
-    const accounts = accountsForSelectionPage();
-    grid.innerHTML = "";
-
-    accounts.forEach((account) => {
-      const selected = state.selectedAccountId === account.id;
-      const card = document.createElement("article");
-      card.className = "account-card" + (selected ? " account-card--selected" : "");
-      card.setAttribute("data-account-id", account.id);
-
-      const badge = accountBadgeMeta(account);
-
-      card.innerHTML =
-        '<div class="account-card__body">' +
-        '<h2 class="account-card__name">' +
-        escapeHtml(account.name) +
-        "</h2>" +
-        '<p class="account-card__meta">' +
-        escapeHtml(account.role) +
-        "</p>" +
-        '<div class="account-card__badges">' +
-        renderBadgeHtml(badge) +
-        "</div>" +
-        '<button type="button" class="btn btn--card account-card__select ' +
-        (selected ? "btn--primary" : "btn--account-select-outline") +
-        '" aria-checked="' +
-        selected +
-        '" role="radio">' +
-        (selected ? "✓ Account Selected" : "Select Account") +
-        "</button>" +
-        "</div>";
-
-      const btn = card.querySelector(".account-card__select");
-      btn.setAttribute(
-        "aria-label",
-        accountSelectAriaLabel(account, badge, selected)
-      );
-      btn.addEventListener("click", () => selectAccount(account.id));
-      btn.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          selectAccount(account.id);
-        }
-      });
-
-      grid.appendChild(card);
-    });
-
+    renderAccountSelectorCards(mocks);
     syncAccountSelectionErrorUi();
   }
 
@@ -1222,18 +1905,6 @@
 
   function updateDockButton() {
     const btn = els.continueCheckout();
-    if (isAccountEntitlementFailureActive()) {
-      btn.disabled = true;
-      btn.textContent = "Select an Account to Continue";
-      return;
-    }
-
-    if (getScenario() === "F" && getScenarioFSubstate() === "zero-accounts") {
-      btn.disabled = true;
-      btn.textContent = "No Accounts Available";
-      return;
-    }
-
     const account = resolveAccountForSelection(state.selectedAccountId);
 
     if (!account) {
@@ -1244,7 +1915,7 @@
 
     btn.disabled = false;
     if (!account.buyerAuthorized) {
-      btn.textContent = "Continue to Request Page";
+      btn.textContent = "Request Purchase";
     } else if (account.checkoutReady) {
       btn.textContent = "Continue to checkout";
     } else {
@@ -1268,50 +1939,9 @@
     }
   }
 
-  function onScenarioChange() {
-    const checked = document.querySelector('input[name="scenario"]:checked');
-    state.scenario = checked ? checked.value : "A";
-    state.accountEntitlementLoaded = false;
-    state.accountSelectionFailureFocusKey = null;
-    syncScenarioPermissionState();
-    syncTidDisplay();
-    updateSecurityModalContent();
-    toggleScenarioToggles();
-
-    if (state.route === "/account-selection") {
-      renderAccountGrid();
-      updateDockButton();
-      syncAccountSelectionErrorUi();
-    }
-    if (state.route === "/request-purchase" && isNonBuyerScenario()) {
-      syncRequestAccessPage({});
-    }
-    if (state.modalOpen) {
-      updateSecurityModalContent();
-    }
-    syncPrototypeChromeTop();
-  }
-
-  function toggleScenarioToggles() {
-    const scenario = getScenario();
-    ["A", "B", "C", "D", "E", "F"].forEach((key) => {
-      const block = document.getElementById("scenario-substate-" + key.toLowerCase());
-      if (block) {
-        block.hidden = scenario !== key;
-      }
-    });
-    if (state.modalOpen) {
-      syncSecurityModalErrorAlert();
-    }
-    if (state.route === "/account-selection") {
-      syncAccountSelectionErrorUi();
-    }
-    syncPrototypeChromeTop();
-  }
-
-  /** Keeps --prototype-chrome-top at least 88px and in sync when the utility bar grows (e.g. Scenario A DvW row). */
+  /** Keeps --prototype-chrome-top at least 88px and in sync when the sandbox toolbar wraps. */
   function syncPrototypeChromeTop() {
-    const bar = document.getElementById("prototype-control-header");
+    const bar = document.getElementById("sandbox-toolbar");
     if (!bar) {
       return;
     }
@@ -1427,6 +2057,11 @@
     if (!priceEl) {
       return;
     }
+    if (isFreeTrialPurchaseType()) {
+      priceEl.textContent = "$0.00";
+      priceEl.setAttribute("aria-label", "Free trial evaluation — $0.00");
+      return;
+    }
     const label = PRODUCT.priceLabel + " / yr";
     priceEl.textContent = label;
     priceEl.setAttribute(
@@ -1436,8 +2071,6 @@
   }
 
   function initPurchaseDropdown() {
-    syncPdpPriceDisplay();
-
     const trigger = els.tryPurchaseBtn();
     const menu = els.purchaseMenu();
     const purchaseItem = els.menuPurchase();
@@ -1445,9 +2078,16 @@
       return;
     }
 
-    trigger.addEventListener("click", () => togglePurchaseMenu());
+    bindPurchaseTriggerBehavior();
 
     trigger.addEventListener("keydown", (e) => {
+      if (isFreeTrialPurchaseType()) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          activateFreeTrial();
+        }
+        return;
+      }
       if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         setPurchaseMenuOpen(true);
@@ -1475,9 +2115,7 @@
     const trialItem = document.getElementById("menu-start-trial");
     if (trialItem) {
       trialItem.addEventListener("click", () => {
-        closePurchaseMenu();
-        showAppToast("Start Free Trial — evaluation workflow stub (out of scope for checkout handoff).");
-        trigger.focus();
+        activateFreeTrial();
       });
     }
 
@@ -1610,32 +2248,38 @@
     els.backdrop().addEventListener("click", () => closeSecurityModal());
     els.continueCheckout().addEventListener("click", onContinueFromAccountSelection);
 
-    els.scenarioRadios().forEach((radio) => {
-      radio.addEventListener("change", onScenarioChange);
-    });
-    els.dvwStateRadios().forEach((radio) => {
-      radio.addEventListener("change", () => {
-        updateSecurityModalContent();
-        syncPrototypeChromeTop();
-      });
-    });
-    els.dvwStateBRadios().forEach((radio) => {
-      radio.addEventListener("change", onScenarioBSubstateChange);
-    });
-    els.dvwStateERadios().forEach((radio) => {
-      radio.addEventListener("change", onScenarioESubstateChange);
-    });
-    els.dvwStateFRadios().forEach((radio) => {
-      radio.addEventListener("change", onScenarioFSubstateChange);
-    });
+    initSandboxToolbar();
+    initSandboxDevNotesDrawer();
 
     window.addEventListener("resize", syncPrototypeChromeTop);
+
+    window.addEventListener("hashchange", () => {
+      const hashRoute = resolveRouteFromHash();
+      if (hashRoute) {
+        syncSandboxDevDrawerForRoute(hashRoute);
+        if (hashRoute !== state.route) {
+          routeTo(hashRoute, { replace: true });
+        }
+      } else {
+        syncSandboxDevDrawerForRoute(state.route);
+      }
+    });
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("popstate", () => {
       const path = window.location.pathname.replace(/\.html$/, "") || "/";
       const normalized =
         path.endsWith("index") || path === "" ? "/" : path.startsWith("/") ? path : "/" + path;
+      if (normalized === "/trial-activation") {
+        state.route = "/trial-activation";
+        document.title = titleForRoute("/trial-activation");
+        els.views().forEach((view) => {
+          const active = view.getAttribute("data-route") === "/";
+          view.classList.toggle("view--active", active);
+          view.hidden = !active;
+        });
+        return;
+      }
       if (normalized !== state.route) {
         routeTo(normalized, { replace: true });
       }
@@ -1644,15 +2288,10 @@
     initNavigationLinks();
     initDevTooltips();
     initAppToast();
-    bindAccountSelectionServiceErrorHost();
     bindAccountSelectionEmptyHost();
     initCheckoutPage();
     initRequestAccessPage();
     initAccountSetupPage();
-    toggleScenarioToggles();
-    syncScenarioPermissionState();
-    syncTidDisplay();
-    updateSecurityModalContent();
     syncPrototypeChromeTop();
     routeTo("/", { replace: true });
   }
