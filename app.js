@@ -370,18 +370,18 @@
         isDefault: true,
       },
       {
-        id: "org_studio_c",
-        name: "Studio C Consulting",
-        accountNumber: "ACC-10984",
-        role: "Product User",
-        isAuthorizedBuyer: false,
-        isDefault: false,
-      },
-      {
         id: "org_civic_labs",
         name: "Civic Infrastructure Labs",
         accountNumber: "ACC-77319",
         role: "License Admin",
+        isAuthorizedBuyer: false,
+        isDefault: false,
+      },
+      {
+        id: "org_studio_c",
+        name: "Studio C Consulting",
+        accountNumber: "ACC-10984",
+        role: "Product User",
         isAuthorizedBuyer: false,
         isDefault: false,
       },
@@ -1134,7 +1134,7 @@
           '<span class="badge badge--authorized-buyer modus-badge-success">Authorized Buyer</span>';
       } else {
         badgesHtml =
-          '<span class="badge badge--non-buyer account-selector-badge-neutral">Non-Purchasing Account</span>';
+          '<span class="badge badge--non-buyer account-selector-badge-neutral">Non-Buyer</span>';
       }
 
       let actionHtml = "";
@@ -1144,10 +1144,6 @@
         }
         actionHtml =
           '<p class="account-card__active-label">Active organization for this session</p>';
-      } else if (!mock.isAuthorizedBuyer) {
-        actionHtml =
-          '<p class="account-card__request-tag">Non-Purchasing Account — Request Only</p>' +
-          '<button type="button" class="btn btn--card account-card__select btn--account-select-outline" disabled aria-disabled="true">Select Account</button>';
       } else {
         actionHtml =
           '<button type="button" class="btn btn--card account-card__select ' +
@@ -1167,16 +1163,13 @@
         '<p class="account-card__meta">' +
         escapeHtml(mock.role) +
         "</p>" +
-        '<p class="account-card__account-number">' +
-        escapeHtml(mock.accountNumber) +
-        "</p>" +
         '<div class="account-card__badges">' +
         badgesHtml +
         "</div>" +
         actionHtml +
         "</div>";
 
-      if (!isSingle && mock.isAuthorizedBuyer) {
+      if (!isSingle) {
         const btn = card.querySelector(".account-card__select");
         const badge = accountBadgeMeta(account);
         btn.setAttribute(
